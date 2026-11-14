@@ -69,7 +69,7 @@ export const App: React.FC = () => {
       if (activeRequest.current !== controller) return;
       const reply = controller.signal.aborted
         ? preparing
-          ? 'The search service is taking longer to start. Please try again shortly.'
+          ? 'Geozity couldn’t finish starting the search service. Please send your search again to reconnect.'
           : 'The search took too long. Please try again or search a nearby neighborhood.'
         : error instanceof Error ? error.message : 'The search could not be completed. Please try again.';
       setMessages((previous) => [...previous, {

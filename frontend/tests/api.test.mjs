@@ -157,7 +157,7 @@ test('readiness retries lost connections but has a bounded attempt count', async
   t.mock.method(globalThis, 'setTimeout', (callback) => { queueMicrotask(callback); return 0; });
   let calls = 0;
   t.mock.method(globalThis, 'fetch', async () => { calls += 1; throw new TypeError('Network unavailable'); });
-  await assert.rejects(waitForSearchService(new AbortController().signal), /taking longer to start/);
+  await assert.rejects(waitForSearchService(new AbortController().signal), /couldn’t finish starting the search service/);
   assert.equal(calls, 40);
 });
 

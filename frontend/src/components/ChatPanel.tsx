@@ -190,7 +190,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
             <div className="w-2 h-2 rounded-full bg-blue-600 animate-bounce" />
             <div className="w-2 h-2 rounded-full bg-blue-600 animate-bounce [animation-delay:-0.15s]" />
             <div className="w-2 h-2 rounded-full bg-blue-600 animate-bounce [animation-delay:-0.3s]" />
-            <span className="ml-1 font-medium">{isStarting ? 'Connecting to the search service...' : 'Searching OpenStreetMap & Wikipedia...'}</span>
+            <span className="ml-1 font-medium">{isStarting ? 'Waking up Geozity’s search service. This can take about a minute. Your search will start automatically.' : 'Searching OpenStreetMap & Wikipedia...'}</span>
           </div>
         )}
 

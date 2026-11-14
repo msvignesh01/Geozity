@@ -115,7 +115,7 @@ export async function waitForSearchService(signal: AbortSignal): Promise<void> {
       });
     }
   }
-  throw new Error('The search service is taking longer to start. Please try again shortly.');
+  throw new Error('Geozity couldn’t finish starting the search service. Please send your search again to reconnect.');
 }
 
 export async function requestChat(
