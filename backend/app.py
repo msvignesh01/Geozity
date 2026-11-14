@@ -6,7 +6,7 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from flask import Flask, g, request, jsonify, send_file
 from flask_cors import CORS
-from dotenv import load_dotenv
+from dotenv import load_dotenv, dotenv_values
 from werkzeug.exceptions import HTTPException
 
 from services.intent_parser import IntentParser, CATEGORY_PLURALS
@@ -16,8 +16,13 @@ from services.nominatim_client import NominatimClient
 from services.overpass_client import OverpassClient
 from services.wiki_client import WikiClient
 from services.photon_client import PhotonClient
+from services.geoapify_client import GeoapifyClient
 
 load_dotenv(Path(__file__).resolve().parents[1] / ".env")
+# Local deployment credentials must not all become application configuration.
+local_map_key = dotenv_values(Path(__file__).resolve().parents[1] / '.env.local').get('GEOAPIFY_API_KEY')
+if local_map_key:
+    os.environ.setdefault('GEOAPIFY_API_KEY', local_map_key)
 
 FRONTEND_DIST = Path(__file__).resolve().parents[1] / "frontend" / "dist"
 app = Flask(__name__, static_folder=str(FRONTEND_DIST / "assets"), static_url_path="/assets")
@@ -33,6 +38,7 @@ nominatim_client = NominatimClient(cache_ttl_seconds=900)
 overpass_client = OverpassClient(cache_ttl_seconds=900)
 wiki_client = WikiClient(cache_ttl_seconds=900)
 photon_client = PhotonClient(cache_ttl_seconds=900)
+geoapify_client = GeoapifyClient(cache_ttl_seconds=900)
 search_slots = threading.BoundedSemaphore(4)
 article_workers = ThreadPoolExecutor(max_workers=3, thread_name_prefix="article")
 
@@ -42,7 +48,7 @@ EMERGENCY_NOTICE = (
 )
 
 ATTRIBUTION_NOTICE = (
-    "Map data © OpenStreetMap contributors (ODbL), Nominatim, Overpass API, Photon, Wikipedia/Wikidata."
+    "Map data © OpenStreetMap contributors (ODbL), Geoapify, Nominatim, Overpass API, Photon, Wikipedia/Wikidata."
 )
 
 
@@ -90,7 +96,7 @@ def health_check():
     return jsonify({
         "status": "ok",
         "product": "Geozity",
-        "stack": "React + Flask + Nominatim + Overpass + Photon + Leaflet + Wikipedia",
+        "stack": "React + Flask + Geoapify + Nominatim + Overpass + Photon + Leaflet + Wikipedia",
         "ai_mode": "rule_based"
     }), 200
 
@@ -183,8 +189,10 @@ def search_chat():
             resolved_source = "Previous search"
         else:
             try:
-                geo_res = nominatim_client.geocode(location_name)
+                geo_res = (geoapify_client if geoapify_client.enabled else nominatim_client).geocode(location_name)
             except ServiceUnavailable:
+                if geoapify_client.enabled:
+                    raise
                 app.logger.warning("Primary location lookup unavailable; using OSM-based fallback")
                 geo_res = photon_client.geocode(location_name)
             if geo_res:
@@ -217,16 +225,18 @@ def search_chat():
     # Step 3: Query live Overpass API with automatic Nominatim POI failover
     overpass_failed = False
     try:
-        places = overpass_client.search_places(
+        places = (geoapify_client if geoapify_client.enabled else overpass_client).search_places(
             category=category, center_lat=resolved_lat, center_lon=resolved_lon,
             reference_label=resolved_label, radius_m=5000, max_results=10,
         )
     except ServiceUnavailable:
+        if geoapify_client.enabled:
+            raise
         overpass_failed = True
         places = []
 
     # If Overpass servers are congested or returning empty, failover to Nominatim POI search
-    if not places:
+    if not places and not geoapify_client.enabled:
         try:
             places = nominatim_client.search_pois(
                 category=category, center_lat=resolved_lat, center_lon=resolved_lon,

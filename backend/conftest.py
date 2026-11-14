@@ -30,6 +30,12 @@ def prevent_accidental_network(request, monkeypatch):
     if request.node.get_closest_marker("live"):
         return
 
+    # Hosted builds can have real provider credentials. Isolated tests must use
+    # an unconfigured client unless their own fixture explicitly supplies one.
+    from services.geoapify_client import GeoapifyClient
+    monkeypatch.delenv('GEOAPIFY_API_KEY', raising=False)
+    monkeypatch.setattr('app.geoapify_client', GeoapifyClient())
+
     def unexpected_request(*args, **kwargs):
         raise AssertionError("Deterministic tests must provide their own HTTP fixture")
 
