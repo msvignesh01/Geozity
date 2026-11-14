@@ -52,7 +52,8 @@ class NominatimClient:
                     raise ValueError("Invalid geocoder response")
                 return results
             except (requests.RequestException, ValueError) as exc:
-                logger.warning("Nominatim lookup failed (%s)", type(exc).__name__)
+                status = getattr(getattr(exc, 'response', None), 'status_code', None)
+                logger.warning("Nominatim lookup failed (%s, HTTP %s)", type(exc).__name__, status)
                 raise ServiceUnavailable("Location lookup is temporarily unavailable. Please try again.") from exc
 
     def geocode(self, query: str) -> dict[str, Any] | None:

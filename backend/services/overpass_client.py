@@ -66,7 +66,8 @@ class OverpassClient:
                 raw_elements = payload["elements"]
                 break  # An honest empty result is not an outage; do not query every mirror.
             except (requests.RequestException, ValueError) as exc:
-                logger.warning("Overpass lookup failed (%s); trying remaining mirrors", type(exc).__name__)
+                status = getattr(getattr(exc, 'response', None), 'status_code', None)
+                logger.warning("Overpass lookup failed (%s, HTTP %s); trying remaining mirrors", type(exc).__name__, status)
         if raw_elements is None:
             raise ServiceUnavailable("Place search is temporarily unavailable. Please try again.")
         places = []

@@ -15,6 +15,7 @@ from services.validation import parse_chat_request
 from services.nominatim_client import NominatimClient
 from services.overpass_client import OverpassClient
 from services.wiki_client import WikiClient
+from services.photon_client import PhotonClient
 
 load_dotenv(Path(__file__).resolve().parents[1] / ".env")
 
@@ -31,6 +32,7 @@ intent_parser = IntentParser()
 nominatim_client = NominatimClient(cache_ttl_seconds=900)
 overpass_client = OverpassClient(cache_ttl_seconds=900)
 wiki_client = WikiClient(cache_ttl_seconds=900)
+photon_client = PhotonClient(cache_ttl_seconds=900)
 search_slots = threading.BoundedSemaphore(4)
 article_workers = ThreadPoolExecutor(max_workers=3, thread_name_prefix="article")
 
@@ -40,7 +42,7 @@ EMERGENCY_NOTICE = (
 )
 
 ATTRIBUTION_NOTICE = (
-    "Map data © OpenStreetMap contributors (ODbL), Nominatim, Overpass API, Wikipedia/Wikidata."
+    "Map data © OpenStreetMap contributors (ODbL), Nominatim, Overpass API, Photon, Wikipedia/Wikidata."
 )
 
 
@@ -88,7 +90,7 @@ def health_check():
     return jsonify({
         "status": "ok",
         "product": "Geozity",
-        "stack": "React + Flask + Nominatim + Overpass + Leaflet + Wikipedia",
+        "stack": "React + Flask + Nominatim + Overpass + Photon + Leaflet + Wikipedia",
         "ai_mode": "rule_based"
     }), 200
 
@@ -163,6 +165,7 @@ def search_chat():
     resolved_lat = None
     resolved_lon = None
     resolved_label = None
+    resolved_source = "Device location"
     location_name = parsed.get("location_name")
 
     if parsed["is_near_me"] and user_location:
@@ -177,12 +180,18 @@ def search_chat():
             resolved_lat = float(last_context["lat"])
             resolved_lon = float(last_context["lon"])
             resolved_label = location_name
+            resolved_source = "Previous search"
         else:
-            geo_res = nominatim_client.geocode(location_name)
+            try:
+                geo_res = nominatim_client.geocode(location_name)
+            except ServiceUnavailable:
+                app.logger.warning("Primary location lookup unavailable; using OSM-based fallback")
+                geo_res = photon_client.geocode(location_name)
             if geo_res:
                 resolved_lat = geo_res["lat"]
                 resolved_lon = geo_res["lon"]
                 resolved_label = geo_res["label"]
+                resolved_source = geo_res.get("source", "OpenStreetMap")
             else:
                 return jsonify({
                     "status": "location_not_found",
@@ -224,9 +233,13 @@ def search_chat():
                 reference_label=resolved_label, radius_km=5.0, max_results=10,
             )
         except ServiceUnavailable:
-            if overpass_failed:
-                raise
-            app.logger.warning("Supplementary place lookup unavailable; primary search completed")
+            app.logger.warning("Supplementary place lookup unavailable")
+        if not places and overpass_failed:
+            app.logger.warning("Primary place providers unavailable; using OSM-based fallback")
+            places = photon_client.search_places(
+                category=category, center_lat=resolved_lat, center_lon=resolved_lon,
+                reference_label=resolved_label, radius_m=5000, max_results=10,
+            )
         if not places and overpass_failed:
             raise ServiceUnavailable("Place search is temporarily unavailable. Please try again.")
 
@@ -239,7 +252,7 @@ def search_chat():
                 "label": resolved_label,
                 "lat": resolved_lat,
                 "lon": resolved_lon,
-                "source": "OpenStreetMap"
+                "source": resolved_source
             },
             "context": {
                 "location_name": resolved_label,
@@ -282,7 +295,7 @@ def search_chat():
             "label": resolved_label,
             "lat": resolved_lat,
             "lon": resolved_lon,
-            "source": "Nominatim / OpenStreetMap"
+            "source": resolved_source
         },
         "context": {
             "location_name": resolved_label,

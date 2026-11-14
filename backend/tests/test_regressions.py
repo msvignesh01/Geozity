@@ -30,7 +30,9 @@ def element(identity=1, name="Sample Park", lat=51.501, lon=-0.12, osm_type="nod
 
 
 @pytest.fixture
-def client():
+def client(monkeypatch):
+    monkeypatch.setattr(server.photon_client, 'geocode', Mock(side_effect=ServiceUnavailable('fallback unavailable')))
+    monkeypatch.setattr(server.photon_client, 'search_places', Mock(side_effect=ServiceUnavailable('fallback unavailable')))
     return server.app.test_client()
 
 
@@ -93,7 +95,9 @@ def test_ready_followup_and_cache_do_not_lose_article_tags(client, search):
     assert first["places"][0]["wiki_summary"] == "Linked article"
     assert "wikipedia_tag" not in first["places"][0]
     second = client.post("/api/chat", json={"message": "parks instead", "last_context": first["context"]}).json
-    assert second == first
+    assert second['places'] == first['places']
+    assert second['context'] == first['context']
+    assert second['status'] == first['status']
     assert search.call_count == 1
     assert server.wiki_client.fetch_summary.call_args.kwargs["wikipedia_tag"] == "en:Sample Park"
 
@@ -434,3 +438,26 @@ def test_hosted_product_identity_and_browser_protection(client):
     assert response.headers['X-Content-Type-Options'] == 'nosniff'
     assert response.headers['Permissions-Policy'] == 'geolocation=(self)'
     assert 'Access-Control-Allow-Origin' not in response.headers
+
+
+def test_hosted_search_recovers_when_primary_providers_reject_requests(client, search, monkeypatch):
+    places = server.overpass_client.search_places('park', 51.5, -0.12, 'London')
+    monkeypatch.setattr(server.nominatim_client, 'geocode', Mock(side_effect=ServiceUnavailable('primary down')))
+    monkeypatch.setattr(server.nominatim_client, 'search_pois', Mock(side_effect=ServiceUnavailable('primary down')))
+    monkeypatch.setattr(server.overpass_client, 'search_places', Mock(side_effect=ServiceUnavailable('primary down')))
+    monkeypatch.setattr(server.photon_client, 'geocode', Mock(return_value={
+        'label': 'London', 'lat': 51.5, 'lon': -0.12, 'source': 'Photon / OpenStreetMap',
+    }))
+    monkeypatch.setattr(server.photon_client, 'search_places', Mock(return_value=places))
+    response = client.post('/api/chat', json={'message': 'parks in London'})
+    assert response.status_code == 200
+    assert response.json['status'] == 'ready'
+    assert response.json['resolved_location']['source'] == 'Photon / OpenStreetMap'
+    assert len(response.json['places']) == 1
+
+
+def test_unknown_location_does_not_trigger_unnecessary_fallback(client, monkeypatch):
+    monkeypatch.setattr(server.nominatim_client, 'geocode', Mock(return_value=None))
+    result = client.post('/api/chat', json={'message': 'parks in Unknown'})
+    assert result.json['status'] == 'location_not_found'
+    server.photon_client.geocode.assert_not_called()

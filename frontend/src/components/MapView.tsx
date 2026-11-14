@@ -149,7 +149,7 @@ export const MapView: React.FC<MapViewProps> = ({ places, resolvedLocation, sele
         Some map tiles could not load. Place details and search results are still available.
       </div>}
       <div className="absolute top-2 right-2 bg-white/90 text-[10px] text-slate-600 px-2 py-1 rounded shadow-sm border border-slate-200 z-10 pointer-events-none">
-        OpenStreetMap &bull; Nominatim &bull; Overpass &bull; Wikipedia
+        OpenStreetMap &bull; Nominatim &bull; Overpass &bull; Photon &bull; Wikipedia
       </div>
     </section>
   );
