@@ -16,7 +16,7 @@ from services.validation import valid_coordinates
 logger = logging.getLogger(__name__)
 
 CATEGORIES = {
-    'hospital': ('healthcare.hospital', 'healthcare.clinic_or_praxis'),
+    'hospital': ('healthcare.hospital',),
     'park': ('leisure.park',),
     'cafe': ('catering.cafe',),
     'restaurant': ('catering.restaurant', 'catering.fast_food'),

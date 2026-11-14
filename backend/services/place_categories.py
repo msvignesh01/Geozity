@@ -1,7 +1,7 @@
 """Shared OSM classification for primary and fallback place searches."""
 
 CATEGORY_TAGS: dict[str, tuple[tuple[str, str], ...]] = {
-    "hospital": (("amenity", "hospital"), ("amenity", "clinic")),
+    "hospital": (("amenity", "hospital"),),
     "park": (("leisure", "park"), ("leisure", "garden")),
     "cafe": (("amenity", "cafe"),),
     "restaurant": (("amenity", "restaurant"), ("amenity", "fast_food")),

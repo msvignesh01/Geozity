@@ -126,3 +126,16 @@ def test_missing_configuration_fails_without_network(monkeypatch):
     assert not service.enabled
     with pytest.raises(ServiceUnavailable):
         service.geocode('Bengaluru')
+
+
+def test_hospital_search_excludes_clinics_and_diagnostic_centres(provider):
+    from services.place_categories import CATEGORY_TAGS
+    client, get, response = provider
+    response.json.return_value = {'features': [
+        feature(1, name='Actual Hospital', categories=['healthcare', 'healthcare.hospital']),
+        feature(2, name='Diagnostic Centre', categories=['healthcare', 'healthcare.clinic_or_praxis']),
+    ]}
+    places = client.search_places('hospital', 12.97, 77.59, 'Bengaluru')
+    assert [p['name'] for p in places] == ['Actual Hospital']
+    assert get.call_args.kwargs['params']['categories'] == 'healthcare.hospital'
+    assert CATEGORY_TAGS['hospital'] == (('amenity', 'hospital'),)
