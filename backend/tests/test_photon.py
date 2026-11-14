@@ -66,6 +66,18 @@ def test_network_failure_is_logged_without_query(http, caplog):
     assert 'private location text' not in caplog.text and 'Private location' not in caplog.text
 
 
+def test_transport_diagnostic_never_logs_connection_details(http, caplog):
+    from urllib3.exceptions import MaxRetryError, NameResolutionError
+
+    get, _ = http
+    reason = NameResolutionError('private host', None, OSError('private location'))
+    get.side_effect = requests.ConnectionError(MaxRetryError(None, '/private query', reason))
+    with pytest.raises(ServiceUnavailable):
+        PhotonClient().geocode('Private location')
+    assert 'reason NameResolutionError' in caplog.text
+    assert 'private' not in caplog.text.casefold()
+
+
 def test_places_obey_osm_identity_category_radius_and_missing_details(http):
     get, response = http
     response.json.return_value = {'features': [

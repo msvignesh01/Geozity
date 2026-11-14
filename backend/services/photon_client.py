@@ -53,7 +53,12 @@ class PhotonClient:
                 return features
             except (requests.RequestException, ValueError) as error:
                 status = getattr(getattr(error, 'response', None), 'status_code', None)
-                logger.warning('Photon lookup failed (%s, HTTP %s)', type(error).__name__, status)
+                # Exception messages may contain a person's search area. Record
+                # only exception class names, including the underlying transport.
+                transport = error.args[0] if error.args and isinstance(error.args[0], Exception) else error
+                reason = getattr(transport, 'reason', None)
+                logger.warning('Photon lookup failed (%s, HTTP %s, transport %s, reason %s)',
+                               type(error).__name__, status, type(transport).__name__, type(reason).__name__)
                 raise ServiceUnavailable('Map search is temporarily unavailable. Please try again.') from error
 
     @staticmethod
