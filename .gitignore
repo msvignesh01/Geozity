@@ -19,3 +19,4 @@ verification/*.log
 
 # Local deployment control and generated verification artifacts.
 /.deployment/
+.vercel/

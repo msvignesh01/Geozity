@@ -30,7 +30,7 @@ async function moduleUrl(path) {
   return result;
 }
 
-const { parseChatResponse, requestChat, CATEGORY_LABELS } = await import(await moduleUrl('../src/api.ts'));
+const { parseChatResponse, requestChat, waitForSearchService, CATEGORY_LABELS } = await import(await moduleUrl('../src/api.ts'));
 const { safeHttpUrl } = await import(await moduleUrl('../src/safe-url.ts'));
 const { PlaceCard } = await import(await moduleUrl('../src/components/PlaceCard.tsx'));
 const place = {
@@ -128,4 +128,51 @@ test('unreadable errors and lost connections become useful messages', async (t) 
 test('a failed HTTP response cannot claim success', async (t) => {
   t.mock.method(globalThis, 'fetch', async () => new Response(JSON.stringify(ready), { status: 500 }));
   await assert.rejects(requestChat(payload, new AbortController().signal), /could not be completed/);
+});
+
+test('readiness requires the real Geozity server and sends no search content', async (t) => {
+  t.mock.method(globalThis, 'fetch', async (url, init) => {
+    assert.equal(url, '/api/health');
+    assert.equal(init.cache, 'no-store');
+    assert.equal(init.body, undefined);
+    return new Response(JSON.stringify({ status: 'ok', product: 'Geozity' }));
+  });
+  await waitForSearchService(new AbortController().signal);
+});
+
+test('readiness waits through a sleeping-host page before allowing the search', async (t) => {
+  t.mock.method(globalThis, 'setTimeout', (callback) => { queueMicrotask(callback); return 0; });
+  let calls = 0;
+  t.mock.method(globalThis, 'fetch', async () => {
+    calls += 1;
+    if (calls === 1) return new Response('<html>Starting server</html>', { status: 503 });
+    if (calls === 2) return new Response('<html>Starting server</html>');
+    return new Response(JSON.stringify({ status: 'ok', product: 'Geozity' }));
+  });
+  await waitForSearchService(new AbortController().signal);
+  assert.equal(calls, 3);
+});
+
+test('readiness retries lost connections but has a bounded attempt count', async (t) => {
+  t.mock.method(globalThis, 'setTimeout', (callback) => { queueMicrotask(callback); return 0; });
+  let calls = 0;
+  t.mock.method(globalThis, 'fetch', async () => { calls += 1; throw new TypeError('Network unavailable'); });
+  await assert.rejects(waitForSearchService(new AbortController().signal), /taking longer to start/);
+  assert.equal(calls, 40);
+});
+
+test('clearing memory can cancel a pending startup without another request', async (t) => {
+  const controller = new AbortController();
+  t.mock.method(globalThis, 'fetch', async () => {
+    queueMicrotask(() => controller.abort(new Error('Cancelled')));
+    return new Response('Starting', { status: 503 });
+  });
+  await assert.rejects(waitForSearchService(controller.signal), /Cancelled/);
+});
+
+test('an unrelated or forbidden server does not pass readiness', async (t) => {
+  const fetch = t.mock.method(globalThis, 'fetch', async () => new Response(JSON.stringify({ status: 'ok', product: 'Other' })));
+  await assert.rejects(waitForSearchService(new AbortController().signal), /unexpected response/);
+  fetch.mock.mockImplementation(async () => new Response('Forbidden', { status: 403 }));
+  await assert.rejects(waitForSearchService(new AbortController().signal), /could not be reached/);
 });

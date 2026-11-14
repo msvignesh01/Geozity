@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ChatMessage, Place, ResolvedLocation, ContextState, UserLocation } from './types';
-import { requestChat } from './api';
+import { requestChat, waitForSearchService } from './api';
 import { ChatPanel } from './components/ChatPanel';
 import { MapView } from './components/MapView';
 
@@ -14,6 +14,7 @@ const INITIAL_MESSAGE: ChatMessage = {
 export const App: React.FC = () => {
   const [messages, setMessages] = useState<ChatMessage[]>([INITIAL_MESSAGE]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isStarting, setIsStarting] = useState(false);
   const [isLocating, setIsLocating] = useState(false);
   const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
   const [currentContext, setCurrentContext] = useState<ContextState | null>(null);
@@ -31,16 +32,24 @@ export const App: React.FC = () => {
     if (!message || activeRequest.current) return;
     const controller = new AbortController();
     activeRequest.current = controller;
-    const timeout = window.setTimeout(() => controller.abort('timeout'), 90000);
+    let preparing = true;
+    let timeout = window.setTimeout(() => controller.abort('timeout'), 75000);
     setMessages((previous) => [...previous, {
       id: crypto.randomUUID(), sender: 'user', text: message, timestamp: timestamp(),
     }]);
     setIsLoading(true);
+    setIsStarting(true);
     // A pending search must not leave the previous results looking current.
     setPlaces([]);
     setSelectedPlace(null);
     setResolvedLocation(null);
     try {
+      await waitForSearchService(controller.signal);
+      if (activeRequest.current !== controller) return;
+      preparing = false;
+      setIsStarting(false);
+      window.clearTimeout(timeout);
+      timeout = window.setTimeout(() => controller.abort('timeout'), 90000);
       const data = await requestChat({
         message, user_location: userLocation, last_context: currentContext, pending_category: pendingCategory,
       }, controller.signal);
@@ -59,7 +68,9 @@ export const App: React.FC = () => {
     } catch (error: unknown) {
       if (activeRequest.current !== controller) return;
       const reply = controller.signal.aborted
-        ? 'The search took too long. Please try again or search a nearby neighborhood.'
+        ? preparing
+          ? 'The search service is taking longer to start. Please try again shortly.'
+          : 'The search took too long. Please try again or search a nearby neighborhood.'
         : error instanceof Error ? error.message : 'The search could not be completed. Please try again.';
       setMessages((previous) => [...previous, {
         id: crypto.randomUUID(), sender: 'assistant', text: reply, timestamp: timestamp(), status: 'error',
@@ -69,6 +80,7 @@ export const App: React.FC = () => {
       if (activeRequest.current === controller) {
         activeRequest.current = null;
         setIsLoading(false);
+        setIsStarting(false);
       }
     }
   };
@@ -104,6 +116,7 @@ export const App: React.FC = () => {
     activeRequest.current?.abort();
     activeRequest.current = null;
     setIsLoading(false);
+    setIsStarting(false);
     setCurrentContext(null);
     setPendingCategory(null);
     setResolvedLocation(null);
@@ -134,7 +147,7 @@ export const App: React.FC = () => {
     <main className="flex flex-col md:flex-row h-[100dvh] w-full overflow-hidden bg-slate-100">
       <div className="w-full md:w-[460px] lg:w-[500px] h-1/2 md:h-full min-h-0 z-10 shrink-0">
         <ChatPanel
-          messages={messages} isLoading={isLoading} isLocating={isLocating} userLocation={userLocation}
+          messages={messages} isLoading={isLoading} isStarting={isStarting} isLocating={isLocating} userLocation={userLocation}
           currentContext={currentContext} canClear={isLoading || !!currentContext || !!pendingCategory}
           selectedPlace={selectedPlace} onSendMessage={handleSendMessage} onRequestGPS={handleRequestGPS}
           onClearContext={handleClearContext} onSelectPlace={handleSelectHistoricalPlace}

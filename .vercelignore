@@ -1,0 +1,13 @@
+backend/
+.deployment/
+verification/
+**/node_modules/
+**/dist/
+**/.venv/
+**/__pycache__/
+**/.pytest_cache/
+**/*.md
+.env
+.env.*
+.git/
+.vercel/

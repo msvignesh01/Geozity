@@ -74,6 +74,50 @@ export function parseChatResponse(value: unknown): ChatApiResponse {
   return result;
 }
 
+export async function waitForSearchService(signal: AbortSignal): Promise<void> {
+  // Only retry this read-only readiness check. Replaying a submitted search
+  // would duplicate provider work. The caller bounds total startup time.
+  for (let attempt = 0; attempt < 40; attempt += 1) {
+    signal.throwIfAborted();
+    let response: Response | null;
+    try {
+      response = await fetch('/api/health', { cache: 'no-store', signal });
+    } catch (error: unknown) {
+      if (signal.aborted) throw error;
+      response = null;
+    }
+    if (response) {
+      if (response.ok) {
+        let body: unknown;
+        try {
+          body = await response.json();
+        } catch {
+          body = null; // A sleeping host can respond with its startup HTML page.
+        }
+        if (isRecord(body) && body.status === 'ok' && body.product === 'Geozity') return;
+        if (body !== null) throw new Error('The search service returned an unexpected response. Please try again.');
+      } else if (![502, 503, 504].includes(response.status)) {
+        throw new Error('The search service could not be reached. Please try again shortly.');
+      }
+    }
+    if (attempt < 39) {
+      await new Promise<void>((resolve, reject) => {
+        function aborted() {
+          clearTimeout(timer);
+          reject(signal.reason);
+        }
+        const timer = setTimeout(() => {
+          signal.removeEventListener('abort', aborted);
+          resolve();
+        }, 2000);
+        if (signal.aborted) aborted();
+        else signal.addEventListener('abort', aborted, { once: true });
+      });
+    }
+  }
+  throw new Error('The search service is taking longer to start. Please try again shortly.');
+}
+
 export async function requestChat(
   payload: { message: string; user_location: { lat: number; lon: number } | null; last_context: ContextState | null; pending_category: string | null },
   signal: AbortSignal,

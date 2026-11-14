@@ -6,6 +6,7 @@ import { Send, AlertTriangle, Sparkles, RotateCcw, Navigation } from 'lucide-rea
 interface ChatPanelProps {
   messages: ChatMessage[];
   isLoading: boolean;
+  isStarting: boolean;
   isLocating: boolean;
   canClear: boolean;
   userLocation: UserLocation | null;
@@ -27,6 +28,7 @@ const SAMPLE_PROMPTS = [
 export const ChatPanel: React.FC<ChatPanelProps> = ({
   messages,
   isLoading,
+  isStarting,
   isLocating,
   canClear,
   userLocation,
@@ -188,7 +190,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
             <div className="w-2 h-2 rounded-full bg-blue-600 animate-bounce" />
             <div className="w-2 h-2 rounded-full bg-blue-600 animate-bounce [animation-delay:-0.15s]" />
             <div className="w-2 h-2 rounded-full bg-blue-600 animate-bounce [animation-delay:-0.3s]" />
-            <span className="ml-1 font-medium">Searching OpenStreetMap &amp; Wikipedia...</span>
+            <span className="ml-1 font-medium">{isStarting ? 'Connecting to the search service...' : 'Searching OpenStreetMap & Wikipedia...'}</span>
           </div>
         )}
 
