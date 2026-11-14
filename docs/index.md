@@ -26,6 +26,7 @@ This folder contains the project documentation for Geozity. The documents are wr
 
 ## Project-level quick links
 
+- [README](../README.md)
 - [backend/app.py](../backend/app.py)
 - [frontend/src/App.tsx](../frontend/src/App.tsx)
 - [render.yaml](../render.yaml)
