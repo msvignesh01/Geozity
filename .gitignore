@@ -1,0 +1,21 @@
+.env
+.env.*
+!.env.example
+backend/.venv/
+**/__pycache__/
+.pytest_cache/
+frontend/node_modules/
+frontend/dist/
+verification/*.log
+
+# Existing local documents only; future documentation remains trackable.
+/README.md
+/BROWSER_CHECKS.md
+/PROJECT_MAP.md
+/VERIFICATION.md
+/option_a_build_plan.md
+/verification/live-product-desktop.jpg
+/verification/live-product-mobile.jpg
+
+# Local deployment control and generated verification artifacts.
+/.deployment/
