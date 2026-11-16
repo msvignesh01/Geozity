@@ -1,8 +1,8 @@
 # Geozity documentation
 
-Updated 16 November 2026 against the current repository and Vercel settings.
+Updated 16 November 2026 against the tested `h1-h2-h3` source branch. Hosting observations below are dated separately from local tests.
 
-The delivery target is Version 1 for the hackathon: globe, live place search, place details and existing optional voice. Further outing, voice/personality and social work is paused until the owner resumes it. Screenshot V1/V2 labels describe interface stages, not two completed releases.
+The deployed checkpoint is Version 1 for the hackathon. This branch implements H1 fixes, H2 outing drafts and H3 voice/motion controls. It is not a production release or a claim that all live/human acceptance gates have passed. H4–H6 remain outside this work. Screenshot V1/V2 labels describe interface stages, not two completed releases.
 
 - [User guide](user-guide.md): search, location, voice and limitations.
 - [Developer setup](developer-setup.md): current globe app and earlier app startup.
@@ -13,6 +13,11 @@ The delivery target is Version 1 for the hackathon: globe, live place search, pl
 - [Operations runbook](operations-runbook.md): the two Vercel projects and recovery steps.
 - [Contributing](contributing.md): scope, consent and validation.
 - [Screenshot progression](../PRODUCT_PROGRESSION.md).
-- [Verification record](verification.md): dated evidence and pending human/device checks. Historical PROJECT_MAP.md and BROWSER_CHECKS.md remain local-only under existing ignore rules.
+- [Verification record](verification.md): dated evidence and pending live/human/device checks.
+- [Project survey and historical context](../PROJECT_MAP.md).
+- [Browser checks](../BROWSER_CHECKS.md).
+- [Historical verification](../VERIFICATION.md).
+- [Corrected Option B plan](../option_b_master_build_plan.md) and [retained product intent](../playful-globe-master-build-plan.md): read the current stack/status notes before their historical bodies.
+- [Earlier Option A plan](../option_a_build_plan.md).
 
-The latest source was merged into GitHub main in commit 90c3c429dee6696d0775bc4a4cc9f3d44be63616. The remote version-2-preview branch was subsequently removed; the local branch still retains that checkpoint. There is no version-1 branch. Both old and new applications remain in the repository. See [README](../README.md).
+The initial globe source was merged into main in `90c3c42`; the guides followed in `ebb7c01`. New H1–H3 work is published on `h1-h2-h3`, without a `codex/` prefix. Both application generations remain in the repository. Publication of this branch does not update the Cloudflare Worker. See [README](../README.md).

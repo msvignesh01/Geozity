@@ -8,12 +8,7 @@ frontend/node_modules/
 frontend/dist/
 verification/*.log
 
-# Existing local documents only; future documentation remains trackable.
-/README.md
-/BROWSER_CHECKS.md
-/PROJECT_MAP.md
-/VERIFICATION.md
-/option_a_build_plan.md
+# Generated historical screenshots remain local; project Markdown is versioned.
 /verification/live-product-desktop.jpg
 /verification/live-product-mobile.jpg
 
@@ -29,5 +24,3 @@ verification/*.log
 /globe/.dev.vars.*
 /globe/test-results/
 /globe/playwright-report/
-/option_b_master_build_plan.md
-/playful-globe-master-build-plan.md

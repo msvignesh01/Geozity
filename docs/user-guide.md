@@ -25,6 +25,14 @@ Read answer aloud · AI voice speaks the English answer through the selected ser
 
 An empty result is different from an outage. Check the area/category if no matches appear. Follow an error's retry guidance; an exhausted daily allowance needs time to reset, not repeated clicks. If the map cannot load, use the available result list and retry the map control. The earlier website may display a service-waking message because its Render server can sleep; the current globe uses a different server.
 
-Place hours and map records may be incomplete or outdated. Hospitals/pharmacies carry a medical caution; contact local emergency services for an emergency. The app does not verify availability, accept bookings or plan routes/outings. There are no saved favorites, accounts, friend rooms or public plans. Physical-phone and human voice acceptance remains pending. Future roadmap features are paused until the owner resumes them.
+Place hours and map records may be incomplete or outdated. Hospitals/pharmacies carry a medical caution; contact local emergency services for an emergency. The deployed app does not verify availability, accept bookings or plan routes/outings. There are no saved favorites, accounts, friend rooms or public plans. Physical-phone and human voice acceptance remains pending.
+
+## Local outing and voice work (not yet deployed)
+
+Choose Plan an outing in the local app. Confirm the area, occasion, local start and timezone, people, transport, available time and two to five requested stops. Budget, dietary/access needs and other preferences can be set in the same form. A description or editable voice transcript can fill recognized details; review them before choosing Build my outing. Relative dates are not guessed.
+
+Each draft shows actual retrieved places, visit lengths, route estimates, listed-hour checks and unresolved facts. Hard budgets cannot pass without reliable costs. Complex hours remain unverified, and dietary/access tags do not guarantee allergy safety or route accessibility. Replace or remove one stop to keep the unaffected choices. Start fresh clears the draft; refreshing loses it, and signed evidence expires after 30 minutes. There is no saving or booking.
+
+For voice, choose a service and consent. Hold to talk using pointer, Space or Enter, then release; Record question remains the click-start alternative. Cancel discards a recording/upload. Transcripts remain editable before search/planning. Optional AI replies have shared stop, mute and volume controls; Pause globe motion stops globe motion. Initial voice testers must be adults. These local flows have controlled browser coverage, not full live-routing or human-voice acceptance.
 
 The [earlier website](https://geozity.vercel.app) remains separate. Its Use my GPS and conversational-memory controls belong to the earlier interface, not this guide's current globe controls.

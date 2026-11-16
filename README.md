@@ -4,7 +4,7 @@ Ask for nearby hospitals, parks, cafes, restaurants, pharmacies, museums, attrac
 
 ## Geozity product progression
 
-The current goal is a stable **Version 1 hackathon release**: the existing globe, live place search, place details and optional voice features. Outing planning and further voice or social expansion are paused until the owner resumes the long-term plan.
+The deployed **Version 1 hackathon release** provides the globe, live place search, place details and optional voice features. The **`h1-h2-h3` branch** adds outing drafts, route and opening-window checks, targeted stop edits and expanded voice controls. Those changes are tested locally and are not released to production. Live-provider, phone and human acceptance gaps remain explicit; social features remain later horizons.
 
 The supplied screenshots use **V1** and **V2** to label interface development stages. Those labels do not mean that two complete product releases have shipped.
 
@@ -28,18 +28,18 @@ pnpm dev
 
 Open http://127.0.0.1:8780/. Supabase's usage function must already be initialized in the intended project. Local use consumes real provider/database capacity. AI/voice default off in samples; keys alone do not enable them. See [setup](docs/developer-setup.md) and [configuration](docs/configuration.md).
 
-Inside `globe/`, repeatable checks are `pnpm test`, `pnpm typecheck`, `pnpm format:check` and `pnpm build`. Live checks are separate and may consume credits. [Verification](docs/verification.md) distinguishes recorded results from pending physical-phone/human voice checks; passing checks do not certify the full roadmap.
+Inside `globe/`, repeatable checks are `pnpm test`, `pnpm typecheck`, `pnpm format:check`, `pnpm build` and `pnpm test:browser`. The current source passed 104 unit/integration tests and 42 controlled desktop/mobile browser cases. Live checks are separate and may consume credits. [Verification](docs/verification.md) distinguishes recorded results from pending physical-phone/human voice checks; passing checks do not certify full H1–H3 acceptance.
 
 ### Source and hosting names
 
-The globe work was merged into GitHub `main` in commit `90c3c42`. The remote `version-2-preview` branch was removed after that merge; a local checkpoint remains. There is no `version-1` branch. Version 1 names the hackathon scope; V1/V2 screenshot labels name interface stages.
+The initial globe work was merged into GitHub `main` in commit `90c3c42`; the later guides were merged in `ebb7c01`. This implementation is published separately on **`h1-h2-h3`**, without a `codex/` prefix. Version 1 names the deployed hackathon checkpoint; V1/V2 screenshot labels name interface stages. Branch publication does not merge this work into `main` or update the separately deployed Worker.
 
 | Vercel project  | Folder      | Website                                                   | Server         |
 | --------------- | ----------- | --------------------------------------------------------- | -------------- |
 | `geozity-globe` | `globe/`    | [Current hackathon app](https://geozity-globe.vercel.app) | Cloudflare     |
 | `geozity`       | `frontend/` | [Earlier app](https://geozity.vercel.app)                 | Render / Flask |
 
-Both Vercel projects are in Vicky's Workspace, build from the same repository, and showed Ready on `main` during the 16 November review. They serve different interfaces. Both remain in place. No domain switch or project deletion is part of this documentation update.
+Both Vercel projects are in Vicky's Workspace and build different applications from the same repository. A Git push can trigger Vercel preview builds; those previews still forward to the existing Worker, so they do not establish live planner support. Both existing projects remain in place. This branch does not change domains, delete projects or deploy the Worker.
 
 See the [documentation index](docs/index.md), [user guide](docs/user-guide.md), [API reference](docs/api-reference.md) and [operations runbook](docs/operations-runbook.md).
 
@@ -140,7 +140,7 @@ Each provider cache holds at most 256 entries for 15 minutes, with copies to avo
 
 Operational logs include request method, status, duration, and provider failure type. The application does not deliberately log questions, precise coordinates, or response bodies. Public providers receive submitted search areas, and map tiles are loaded from OpenStreetMap in the browser. Device location is optional; a public release needs an owner-approved privacy notice and provider contact identity.
 
-The historical `option_a_build_plan.md` describes the original proposal, including ideas that are not implemented. It is retained unchanged and is not a delivery certificate. the local historical PROJECT_MAP.md records the survey and initial defects; [VERIFICATION.md](docs/verification.md) records the observed delivery checks and remaining limits.
+The historical [Option A plan](option_a_build_plan.md) describes the original proposal. Its body is retained as history, with a current-status note; it is not a delivery certificate. [PROJECT_MAP.md](PROJECT_MAP.md) records the survey and initial defects; [current verification](docs/verification.md) records observed delivery checks and remaining limits.
 
 ## Technical detail (optional)
 

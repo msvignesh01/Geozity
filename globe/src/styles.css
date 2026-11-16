@@ -672,3 +672,141 @@ h2 {
   margin-top: 5px;
   font-size: 12px;
 }
+.explore-modes {
+  display: flex;
+  border-bottom: 1px solid var(--line);
+  flex-shrink: 0;
+}
+.explore-modes button {
+  flex: 1;
+  min-height: 44px;
+  border: 0;
+  background: #f7fafc;
+  font: inherit;
+  font-size: 13px;
+  color: var(--ink);
+}
+.explore-modes button[aria-pressed="true"] {
+  background: var(--ink);
+  color: #fff;
+}
+.outing-planner {
+  font-size: 13px;
+}
+.outing-planner h1 {
+  font-size: 32px;
+}
+.outing-planner .intro {
+  display: block;
+}
+.outing-planner label {
+  display: grid;
+  gap: 6px;
+  margin: 10px 0;
+  font-size: 12px;
+}
+.outing-planner input,
+.outing-planner select,
+.outing-planner textarea {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  padding: 8px;
+  border: 1px solid #bdcfd9;
+  border-radius: 6px;
+  background: #fff;
+  color: var(--ink);
+  font: inherit;
+}
+.outing-planner textarea {
+  min-height: 82px;
+  resize: vertical;
+}
+.outing-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 12px;
+}
+.outing-planner fieldset {
+  min-width: 0;
+  margin: 20px 0;
+  padding: 12px 0;
+  border: 0;
+  border-top: 1px solid var(--line);
+}
+.outing-planner legend {
+  font-weight: 700;
+  padding-right: 10px;
+}
+.outing-planner button {
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #f7fafc;
+  color: var(--ink);
+  font: inherit;
+}
+.outing-stop-input {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 90px);
+  gap: 0 10px;
+  margin-bottom: 16px;
+}
+.outing-stop-input button {
+  grid-column: 1 / -1;
+  justify-self: start;
+}
+.outing-planner .plan-submit {
+  width: 100%;
+  background: var(--ink);
+  color: #fff;
+}
+.outing-warning {
+  color: #7a3520;
+  background: #fff3eb;
+  padding: 10px;
+}
+.outing-result {
+  margin-top: 24px;
+}
+.outing-result p {
+  overflow-wrap: anywhere;
+}
+.outing-leg {
+  padding-top: 12px;
+  border-top: 1px dashed var(--line);
+}
+.experience-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  padding: 6px 16px;
+  border-bottom: 1px solid var(--line);
+}
+.experience-controls button {
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  min-height: 44px;
+  font-size: 11px;
+}
+.experience-controls label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+}
+.experience-controls input {
+  max-width: 90px;
+  min-height: 44px;
+  accent-color: #187a80;
+}
+.hold-to-talk {
+  touch-action: none;
+  user-select: none;
+}
+.hold-to-talk[aria-pressed="true"] {
+  background: #9a3026;
+  color: #fff;
+}

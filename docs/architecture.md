@@ -1,6 +1,6 @@
 # Architecture
 
-Current Version 1 scope, checked 16 November 2026. Geozity searches public places; it does not book visits, verify live availability or produce multi-stop outings.
+Deployed Version 1 scope, checked 16 November 2026. The deployed app searches public places; local H2/H3 work now adds outing drafts and voice controls. Neither version books visits or verifies live availability.
 
 ## Current app
 
@@ -12,7 +12,9 @@ Current Version 1 scope, checked 16 November 2026. Geozity searches public place
 6. Optional Sarvam or ElevenLabs calls transcribe short audio and synthesize English answers. The visitor chooses a provider, consents to recording and reviews the transcript before search. Sarvam transcription requests English translation of Indian/mixed speech.
 7. Supabase stores atomic usage reservations. The private daily_usage table holds UTC dates, meters, rotating pseudonymous client hashes and counts, not questions, recordings, raw IP addresses or location histories. Old usage rows are removed during reservations according to the SQL retention rule. The server-only function is denied to anonymous and ordinary signed-in database roles. If usage protection fails, chargeable work fails closed.
 
-There is no DeepSpace runtime dependency. There are no accounts, saved favorites, planner, friend rooms, public templates, payments, staff portal or scheduled jobs in the current globe app. Sessions are anonymous; context expires after one hour and the cookie after one day. The tokens are signed, not encrypted; clients must treat them as sensitive context.
+There is no DeepSpace runtime dependency. There are no accounts, saved favorites, friend rooms, public templates, payments, staff portal or scheduled jobs. Sessions are anonymous; search context expires after one hour and the cookie after one day. The tokens are signed, not encrypted; clients must treat them as sensitive context.
+
+The local outing module separates validated requests, provider candidates, routing and pure scheduling. Session-bound signed drafts carry bounded alternatives and expire after 30 minutes without server plan persistence. Targeted edits preserve stop IDs and provider evidence while recomputing travel and arrival windows. Existing usage reservations, origin checks, deadlines and redacted errors apply to the new routes. Unsupported opening-hour expressions, unknown costs and unverified hard constraints remain explicit. See the verification record for remaining live-release checks.
 
 ## Earlier app retained
 
@@ -20,4 +22,4 @@ frontend/ contains React 18 and Leaflet. backend/ contains Flask. Its website on
 
 ## Boundaries and risks
 
-Search areas reach map providers; map tiles reach the tile service. Optional voice audio reaches the selected voice provider, and optional AI questions reach Sarvam. Geozity does not persist recordings; provider retention is separate. Provider availability, language accuracy and map completeness are not guaranteed. Distances are not route lengths or travel times. Physical-phone and human-voice acceptance remains pending. Future roadmap work is paused.
+Search areas and outing stop coordinates reach map providers; map tiles reach the tile service. Optional voice audio reaches the selected voice provider, and optional AI questions reach Sarvam. Geozity does not persist recordings; provider retention is separate. Provider availability, language accuracy and map completeness are not guaranteed. Search-card distances remain straight-line; the local planner labels provider route estimates separately. Physical-phone, human-voice and live routing acceptance remains pending. H4–H6 remain outside this work.

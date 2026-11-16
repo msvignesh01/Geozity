@@ -25,9 +25,20 @@ pnpm test
 pnpm typecheck
 pnpm format:check
 pnpm build
+pnpm test:browser
 ```
 
-pnpm test:browser runs desktop/mobile browser cases with intercepted API responses, using Chrome and synthetic microphone input. It may start the dev server and regenerate local settings. It is not proof of physical-device or live-provider behavior. No standalone ESLint command is configured.
+pnpm test:browser runs desktop/mobile search, outing and voice cases with intercepted API responses, using Chrome and synthetic microphone input. It uses two workers to bound software-WebGL/audio contention, without extending test timeouts. It may start the dev server and regenerate local settings. It is not proof of physical-device or live-provider behavior. No standalone ESLint command is configured. On Windows, set WRANGLER_LOG_PATH to a writable folder such as globe/.wrangler/logs if the sandbox restricts the default log folder.
+
+The `h1-h2-h3` source passed 104 unit/integration tests and 42 browser cases, plus TypeScript, formatting and build. Open Plan an outing to review H2 locally; voice controls appear only when the local service is enabled. Do not bypass exhausted live allowances by switching to the temporary-database live suite or direct-provider scripts.
+
+To check Worker packaging without publishing:
+
+```powershell
+pnpm exec wrangler deploy --config wrangler.toml --dry-run --outdir .wrangler/horizons-dry-run
+```
+
+Keep the explicit config: generated Vite deployment redirection can refer to an obsolete output path. Packaging success does not establish hosted startup. Branch previews still forward to the existing Worker, so local planner success is not proof a preview has the matching API.
 
 Explicit real-provider checks are pnpm test:live, pnpm test:ai:live and pnpm test:voice:live. These consume provider capacity. The map live suite uses real Geoapify with a temporary local PostgreSQL-compatible database bridge; it does not verify hosted Supabase. See [verification](verification.md).
 

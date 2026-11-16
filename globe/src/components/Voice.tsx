@@ -23,10 +23,12 @@ export function Voice({
   provider,
   onTranscript,
   onError,
+  onStart,
 }: {
   provider: VoiceProvider;
   onTranscript: (text: string) => void;
   onError: (text: string) => void;
+  onStart?: () => void;
 }) {
   const [consented, setConsented] = useState(false);
   const [state, setState] = useState<
@@ -38,6 +40,26 @@ export function Voice({
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
   const request = useRef<AbortController | null>(null);
   const generation = useRef(0);
+  const held = useRef(false);
+  const starting = useRef(false);
+  useEffect(() => {
+    const leave = () => cancel();
+    const hide = () => {
+      if (document.hidden) cancel();
+    };
+    window.addEventListener("blur", leave);
+    document.addEventListener("visibilitychange", hide);
+    return () => {
+      window.removeEventListener("blur", leave);
+      document.removeEventListener("visibilitychange", hide);
+    };
+  }, []);
+  function releaseHold() {
+    if (!held.current) return;
+    held.current = false;
+    if (recorder.current?.state === "recording") recorder.current.stop();
+    else cancel();
+  }
   function stopTracks() {
     stream.current?.getTracks().forEach((track) => track.stop());
     stream.current = null;
@@ -45,6 +67,8 @@ export function Voice({
     timer.current = null;
   }
   function cancel() {
+    held.current = false;
+    starting.current = false;
     generation.current += 1;
     request.current?.abort();
     request.current = null;
@@ -69,6 +93,9 @@ export function Voice({
     [],
   );
   async function start() {
+    if (starting.current || recorder.current?.state === "recording") return;
+    starting.current = true;
+    onStart?.();
     const current = ++generation.current;
     setState("permission");
     try {
@@ -98,6 +125,9 @@ export function Voice({
         );
       };
       instance.onstop = async () => {
+        held.current = false;
+        starting.current = false;
+        recorder.current = null;
         stopTracks();
         if (generation.current !== current) return;
         setState("transcribing");
@@ -155,6 +185,7 @@ export function Voice({
         if (elapsed >= 29 && instance.state === "recording") instance.stop();
       }, 250);
     } catch (error) {
+      starting.current = false;
       stopTracks();
       if (generation.current !== current) return;
       setState("idle");
@@ -187,9 +218,49 @@ export function Voice({
         >
           privacy policy
         </a>
-        . Geozity does not save recordings.
+        . Geozity does not save recordings. Provider retention follows its
+        policy and account settings. Initial testing uses adult voices only.
       </label>
       <div className="voice-actions">
+        <button
+          type="button"
+          className="hold-to-talk"
+          disabled={!consented || state === "transcribing"}
+          aria-label="Hold to talk"
+          aria-pressed={state === "recording" && held.current}
+          onPointerDown={(event) => {
+            if (state !== "idle" || event.button !== 0) return;
+            event.preventDefault();
+            event.currentTarget.setPointerCapture(event.pointerId);
+            held.current = true;
+            void start();
+          }}
+          onPointerUp={releaseHold}
+          onPointerCancel={() => {
+            if (held.current) cancel();
+          }}
+          onLostPointerCapture={releaseHold}
+          onKeyDown={(event) => {
+            if ((event.key === " " || event.key === "Enter") && !event.repeat) {
+              event.preventDefault();
+              if (state === "idle") {
+                held.current = true;
+                void start();
+              }
+            }
+          }}
+          onKeyUp={(event) => {
+            if (event.key === " " || event.key === "Enter") {
+              event.preventDefault();
+              releaseHold();
+            }
+          }}
+          onBlur={releaseHold}
+        >
+          {state === "recording" && held.current
+            ? `Recording · ${seconds}s · release to finish`
+            : "Hold to talk"}
+        </button>
         <button
           type="button"
           disabled={
@@ -213,6 +284,11 @@ export function Voice({
           </button>
         )}
       </div>
+      <p className="privacy-note">
+        Hold with a finger, mouse, Space or Enter; release to finish. Record
+        question is the click-to-start alternative. If permission interrupts
+        your first hold, hold again after allowing the microphone.
+      </p>
       <span role="status">
         {state === "recording"
           ? "Microphone recording. Stops automatically before 30 seconds."
