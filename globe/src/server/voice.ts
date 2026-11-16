@@ -2,7 +2,7 @@ import { z } from "zod";
 import { type Env, PublicError } from "./config";
 import { reserve } from "./budget";
 import { providerSpeech, providerTranscript } from "./voice-providers";
-import { type VoiceProvider } from "../domain/voice";
+import { type ElevenVoice, type VoiceProvider } from "../domain/voice";
 
 export function voiceEnabled(
   env: Env,
@@ -76,10 +76,12 @@ export async function speak(
   client: string,
   text: string,
   provider: VoiceProvider = "elevenlabs",
+  voice?: ElevenVoice,
 ): Promise<ArrayBuffer> {
   requireVoice(env, provider);
   if (
     provider === "elevenlabs" &&
+    !voice &&
     env.ELEVENLABS_VOICE_ID &&
     !/^[A-Za-z0-9_-]{1,100}$/.test(env.ELEVENLABS_VOICE_ID)
   )
@@ -88,7 +90,7 @@ export async function speak(
       "Spoken replies are not enabled yet. The text answer is still available.",
     );
   await reserve(env, client, "speech_characters", text.length);
-  return voiceCall(() => providerSpeech(env, provider, text));
+  return voiceCall(() => providerSpeech(env, provider, text, voice));
 }
 async function voiceCall<T>(operation: () => Promise<T>): Promise<T> {
   try {

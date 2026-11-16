@@ -17,7 +17,7 @@ import { reserve } from "./budget";
 import { geocode, places } from "./maps";
 import { interpret } from "./ai";
 import { speak, transcribe, voiceEnabled } from "./voice";
-import { voiceProviderSchema } from "../domain/voice";
+import { elevenVoiceSchema, voiceProviderSchema } from "../domain/voice";
 import { createOuting, editOuting } from "./outing";
 
 export const app = new Hono<{
@@ -378,8 +378,12 @@ app.post("/api/voice/speak", async (c) => {
     .object({
       text: z.string().trim().min(1).max(500),
       provider: voiceProviderSchema.default("elevenlabs"),
+      voice: elevenVoiceSchema.optional(),
     })
     .strict()
+    .refine(
+      (value) => value.provider === "elevenlabs" || value.voice === undefined,
+    )
     .safeParse(body);
   if (!data.success)
     throw new PublicError(
@@ -393,6 +397,7 @@ app.post("/api/voice/speak", async (c) => {
     c.get("client"),
     data.data.text,
     data.data.provider,
+    data.data.voice,
   );
   const wav =
     String.fromCharCode(

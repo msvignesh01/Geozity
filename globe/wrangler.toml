@@ -8,14 +8,14 @@ minify = true
 [vars]
 FRONTEND_ORIGIN = "https://geozity-globe.vercel.app"
 DISABLE_EXTERNAL_PROVIDERS = "false"
-DAILY_MAP_CALL_LIMIT = "200"
+DAILY_MAP_CALL_LIMIT = "3000"
 ENABLE_AI = "true"
 ENABLE_VOICE = "true"
 MAP_STYLE_URL = "https://tiles.openfreemap.org/styles/liberty"
 AI_MODEL = "sarvam-105b-conversations"
-DAILY_AI_CALL_LIMIT = "30"
-DAILY_VOICE_SECONDS_LIMIT = "120"
-DAILY_SPEECH_CHAR_LIMIT = "3000"
+DAILY_AI_CALL_LIMIT = "200"
+DAILY_VOICE_SECONDS_LIMIT = "3600"
+DAILY_SPEECH_CHAR_LIMIT = "10000"
 
 [observability]
 enabled = true

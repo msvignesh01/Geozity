@@ -3,6 +3,8 @@ import { TextToSpeechClient as SarvamTts } from "sarvamai/textToSpeech";
 import { z } from "zod";
 import {
   defaultElevenVoice,
+  elevenVoices,
+  type ElevenVoice,
   voiceModels,
   type VoiceProvider,
 } from "../domain/voice.ts";
@@ -118,6 +120,7 @@ export async function providerSpeech(
   env: Env,
   provider: VoiceProvider,
   text: string,
+  voice?: ElevenVoice,
 ): Promise<ArrayBuffer> {
   if (provider === "sarvam") {
     const model = z
@@ -152,7 +155,7 @@ export async function providerSpeech(
   }
   const response = await eleven(
     env,
-    `text-to-speech/${encodeURIComponent(env.ELEVENLABS_VOICE_ID || defaultElevenVoice)}?output_format=mp3_22050_32`,
+    `text-to-speech/${encodeURIComponent(voice ? elevenVoices[voice].id : env.ELEVENLABS_VOICE_ID || defaultElevenVoice)}?output_format=mp3_22050_32`,
     {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
