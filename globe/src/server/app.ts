@@ -18,6 +18,7 @@ import { geocode, places } from "./maps";
 import { interpret } from "./ai";
 import { speak, transcribe, voiceEnabled } from "./voice";
 import { voiceProviderSchema } from "../domain/voice";
+import { createOuting, editOuting } from "./outing";
 
 export const app = new Hono<{
   Bindings: Env;
@@ -209,7 +210,7 @@ app.post("/api/location/search", async (c) => {
       requestId: request.requestId,
       errorCode: "UNSUPPORTED_CATEGORY",
       message:
-        "I can find hospitals, parks, cafes, restaurants, pharmacies, museums, attractions, libraries, and supermarkets. Bookings, outing plans, and verified availability are not available yet.",
+        "I can find hospitals, parks, cafes, restaurants, pharmacies, museums, attractions, libraries, and supermarkets. For multi-stop outings, choose Plan an outing. Bookings and verified availability are not available.",
       retryable: false,
     } satisfies SearchResponse);
   const category: Category = intent.category;
@@ -280,6 +281,46 @@ app.post("/api/location/search", async (c) => {
     cached: false,
   } satisfies SearchResponse);
 });
+app.use(
+  "/api/outing/*",
+  bodyLimit({
+    maxSize: 120000,
+    onError: () => {
+      throw new PublicError(
+        "INPUT_TOO_LARGE",
+        "This outing draft is too large. Start a new plan.",
+        413,
+        false,
+      );
+    },
+  }),
+);
+for (const [path, handler] of [
+  ["create", createOuting],
+  ["edit", editOuting],
+] as const) {
+  app.post(`/api/outing/${path}`, async (c) => {
+    let body: unknown;
+    try {
+      body = await c.req.json();
+    } catch {
+      throw new PublicError(
+        "INVALID_INPUT",
+        "Please send readable outing details.",
+        400,
+        false,
+      );
+    }
+    const result = await handler(
+      c.env,
+      c.get("client"),
+      c.get("session"),
+      body,
+    );
+    c.set("requestId", result.requestId);
+    return c.json(result);
+  });
+}
 app.use(
   "/api/voice/*",
   bodyLimit({

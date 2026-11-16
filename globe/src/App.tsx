@@ -6,9 +6,11 @@ import {
   type SearchResponse,
   requestSchema,
   responseSchema,
+  medicalNotice,
 } from "./domain/contracts";
 import { Globe } from "./components/Globe";
 import { Voice, apiError } from "./components/Voice";
+import { OutingPlanner } from "./components/OutingPlanner";
 import { voiceProviderSchema, type VoiceProvider } from "./domain/voice";
 
 const configSchema = z.object({
@@ -23,6 +25,8 @@ const prompts = [
   "Museums in London",
 ];
 export function App() {
+  const [mode, setMode] = useState<"search" | "outing">("search");
+  const [plannerGeneration, setPlannerGeneration] = useState(0);
   const [question, setQuestion] = useState("");
   const [result, setResult] = useState<SearchResponse | null>(null);
   const [places, setPlaces] = useState<Place[]>([]);
@@ -51,6 +55,14 @@ export function App() {
   const audioUrl = useRef<string | null>(null);
   const speechRequest = useRef<AbortController | null>(null);
   const [speaking, setSpeaking] = useState(false);
+  const [volume, setVolume] = useState(0.8);
+  const [muted, setMuted] = useState(false);
+  const [motionEnabled, setMotionEnabled] = useState(true);
+  const currentVolume = useRef(volume);
+  currentVolume.current = volume;
+  useEffect(() => {
+    if (audio.current) audio.current.volume = volume;
+  }, [volume]);
   const gpsGeneration = useRef(0);
   const input = useRef<HTMLTextAreaElement>(null);
   const cards = useRef(new Map<string, HTMLButtonElement>());
@@ -132,7 +144,8 @@ export function App() {
         setPlaces(parsed.places);
         setSelected(parsed.places[0].id);
       }
-      setQuestion("");
+      if (parsed.status !== "failed")
+        setQuestion((draft) => (draft.trim() === text.trim() ? "" : draft));
     } catch (error) {
       if (active.current !== controller) return;
       setNotice(
@@ -150,6 +163,7 @@ export function App() {
     }
   }
   function clear() {
+    setPlannerGeneration((value) => value + 1);
     active.current?.abort();
     active.current = null;
     stopSpeech();
@@ -196,6 +210,7 @@ export function App() {
   }
   async function readAloud(text: string) {
     stopSpeech();
+    if (muted || volume === 0) return;
     const controller = new AbortController();
     speechRequest.current = controller;
     setSpeaking(true);
@@ -218,6 +233,7 @@ export function App() {
       if (speechRequest.current !== controller) return;
       audioUrl.current = URL.createObjectURL(blob);
       audio.current = new Audio(audioUrl.current);
+      audio.current.volume = currentVolume.current;
       audio.current.onended = stopSpeech;
       audio.current.onerror = () => {
         stopSpeech();
@@ -237,7 +253,7 @@ export function App() {
   }
   const medical =
     (result?.status === "ready" && !!result.safetyNotice) ||
-    (busy &&
+    ((busy || result?.status === "needs_clarification") &&
       /\b(hospital|pharmacy|pharmacies|emergency|clinic)\b/iu.test(
         lastQuestion,
       ));
@@ -260,288 +276,398 @@ export function App() {
           className={`explorer${result ? " has-results" : ""}`}
           aria-label="Ask and explore places"
         >
-          <div className="explorer-content">
-            <div className="eyebrow">YOUR CURIOSITY, ON THE MAP</div>
-            <h1>
-              Where shall <br />
-              we wander?
-            </h1>
-            <p className="intro">
-              A quiet park. A good coffee. Somewhere new. Ask a question and see
-              real places come into view.
-            </p>
-            {!result && !busy && (
-              <div className="sample-prompts" aria-label="Example questions">
-                {prompts.map((prompt) => (
-                  <button key={prompt} onClick={() => void search(prompt)}>
-                    {prompt}
-                    <span aria-hidden="true">↗</span>
-                  </button>
-                ))}
-              </div>
-            )}
-            <div role="status" aria-live="polite" className="status-line">
-              {busy
-                ? "Finding real places and getting the globe ready…"
-                : notice}
-            </div>
-            {lastQuestion && (result || busy) && (
-              <p className="asked">You asked: {lastQuestion}</p>
-            )}
-            {result?.status === "failed" && (
-              <div className="message error" role="alert">
-                <p>{result.message}</p>
-                {result.retryable && (
-                  <button onClick={() => void search(lastQuestion)}>
-                    Try this search again
-                  </button>
-                )}
-              </div>
-            )}
-            {result?.status === "needs_clarification" && (
-              <div className="message">
-                <h2>{result.question}</h2>
-                <div className="choices">
-                  {result.choices.map((choice) => (
-                    <button
-                      key={choice.token}
-                      onClick={() => void search(lastQuestion, choice.token)}
-                    >
-                      {choice.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-            {result?.status === "no_results" && (
-              <div className="message">
-                <p>{result.summary}</p>
-                {radius < 10000 && (
-                  <p>
-                    Choose a wider search radius below, then send your question
-                    again.
-                  </p>
-                )}
-              </div>
-            )}
-            {result?.status === "ready" && (
+          <nav className="explore-modes" aria-label="Explore mode">
+            <button
+              aria-pressed={mode === "search"}
+              onClick={() => {
+                clear();
+                setMode("search");
+              }}
+            >
+              Place search
+            </button>
+            <button
+              aria-pressed={mode === "outing"}
+              onClick={() => {
+                clear();
+                setMode("outing");
+              }}
+            >
+              Plan an outing
+            </button>
+          </nav>
+          <div className="experience-controls">
+            <button
+              aria-pressed={!motionEnabled}
+              onClick={() => setMotionEnabled((value) => !value)}
+            >
+              {motionEnabled ? "Pause globe motion" : "Motion paused"}
+            </button>
+            {config.speechEnabled && (
               <>
-                <div className="results-heading">
-                  <h2>{result.places.length} places to explore</h2>
-                  <span>
-                    {result.aiMode === "ai_verified"
-                      ? "AI interpreted · provider results"
-                      : "Keyword search · provider results"}
-                  </span>
-                </div>
-                <p className="result-summary">{result.summary}</p>
-                {result.safetyNotice && (
-                  <p className="medical-notice">{result.safetyNotice}</p>
+                <button
+                  aria-pressed={muted}
+                  onClick={() => {
+                    stopSpeech();
+                    setMuted((value) => !value);
+                  }}
+                >
+                  {muted ? "Unmute voice" : "Mute voice"}
+                </button>
+                <label>
+                  Voice volume
+                  <input
+                    type="range"
+                    min="0"
+                    max="1"
+                    step="0.1"
+                    value={volume}
+                    onChange={(event) => {
+                      const next = Number(event.target.value);
+                      setVolume(next);
+                      if (next === 0) stopSpeech();
+                    }}
+                  />
+                </label>
+                {speaking && (
+                  <button onClick={stopSpeech}>Stop all speech</button>
                 )}
-                {config.speechEnabled && (
-                  <button
-                    className="read-aloud"
-                    onClick={() =>
-                      speaking
-                        ? stopSpeech()
-                        : void readAloud(
-                            `${result.safetyNotice ?? ""} ${result.summary}`,
-                          )
-                    }
-                  >
-                    {speaking
-                      ? "Stop voice reply"
-                      : "Read answer aloud · AI voice"}
-                  </button>
-                )}
-                <ol className="results">
-                  {places.map((place) => (
-                    <li
-                      key={place.id}
-                      className={
-                        selected === place.id ? "place selected" : "place"
-                      }
-                    >
-                      <button
-                        className="place-select"
-                        ref={(element) => {
-                          if (element) cards.current.set(place.id, element);
-                          else cards.current.delete(place.id);
-                        }}
-                        aria-pressed={selected === place.id}
-                        onClick={() => setSelected(place.id)}
-                      >
-                        <span className="place-number">{place.rank}</span>
-                        <span>
-                          <strong>{place.name}</strong>
-                          <small>{place.distanceLabel}</small>
-                        </span>
-                        <span aria-hidden="true">↗</span>
-                      </button>
-                      <div className="place-details">
-                        <p>{place.address || "Address not listed"}</p>
-                        <p>
-                          <span className="detail-label">Hours</span>{" "}
-                          {place.openingHours || "Opening hours not listed"}
-                        </p>
-                        {place.wikiSummary && (
-                          <p className="wiki-summary">{place.wikiSummary}</p>
-                        )}
-                        <div className="place-links">
-                          <a
-                            href={place.osmUrl}
-                            target="_blank"
-                            rel="noreferrer"
-                          >
-                            View on OpenStreetMap ↗
-                          </a>
-                          {place.wikiUrl && (
-                            <a
-                              href={place.wikiUrl}
-                              target="_blank"
-                              rel="noreferrer"
-                            >
-                              Wikipedia ↗
-                            </a>
-                          )}
-                        </div>
-                        <small className="retrieved">
-                          Retrieved{" "}
-                          {new Date(place.retrievedAt).toLocaleTimeString()}.
-                          Provider details may be out of date.
-                        </small>
-                      </div>
-                    </li>
-                  ))}
-                </ol>
               </>
             )}
           </div>
-          <div className="composer-wrap">
-            {location && (
-              <p className="context-label">Search area: {location.label}</p>
-            )}
-            <form
-              onSubmit={(event) => {
-                event.preventDefault();
-                void search(question);
-              }}
-            >
-              <label htmlFor="question">Ask Geozity</label>
-              <div className="composer">
-                <textarea
-                  ref={input}
-                  id="question"
-                  value={question}
-                  maxLength={500}
-                  onChange={(e) => setQuestion(e.target.value)}
-                  placeholder={
-                    context
-                      ? "Try “cafes instead”…"
-                      : "Find parks in Bengaluru…"
-                  }
-                  rows={2}
-                />
-                <button
-                  className="send"
-                  type="submit"
-                  disabled={!question.trim()}
-                  aria-label="Find places"
-                >
-                  ↗
-                </button>
-              </div>
-              <div className="composer-tools">
-                <button type="button" onClick={locate} disabled={gpsBusy}>
-                  {gpsBusy
-                    ? "Locating…"
-                    : gps
-                      ? "Location ready ✓"
-                      : "Use my location"}
-                </button>
-                <label>
-                  Within{" "}
-                  <select
-                    aria-label="Search radius"
-                    value={radius}
-                    onChange={(e) => {
-                      const parsed = requestSchema.shape.radiusMeters.safeParse(
-                        Number(e.target.value),
-                      );
-                      if (parsed.success) setRadius(parsed.data);
-                    }}
-                  >
-                    <option value="1000">1 km</option>
-                    <option value="3000">3 km</option>
-                    <option value="5000">5 km</option>
-                    <option value="10000">10 km</option>
-                  </select>
-                </label>
-              </div>
-            </form>
-            {busy && (
-              <button
-                className="cancel-search"
-                onClick={() => {
-                  active.current?.abort();
-                  active.current = null;
-                  setBusy(false);
-                  setNotice("Search canceled.");
+          {mode === "outing" ? (
+            <div className="explorer-content">
+              <OutingPlanner
+                key={plannerGeneration}
+                onMap={(found, area) => {
+                  setPlaces(found);
+                  setLocation(area);
+                  setSelected(found[0]?.id ?? null);
                 }}
-              >
-                Cancel search
-              </button>
-            )}
-            {(config.voiceEnabled || config.speechEnabled) && (
-              <label className="voice-choice">
-                Voice service{" "}
-                <select
-                  aria-label="Voice service"
-                  value={selectedProvider}
-                  onChange={(e) => {
-                    const provider = voiceProviderSchema.safeParse(
-                      e.target.value,
-                    );
-                    if (provider.success) {
-                      stopSpeech();
-                      setVoiceProvider(provider.data);
-                    }
+                voiceEnabled={config.voiceEnabled}
+                speechEnabled={config.speechEnabled && !muted && volume > 0}
+                provider={selectedProvider}
+                voiceProviders={config.voiceProviders}
+                onProviderChange={(value) => {
+                  stopSpeech();
+                  setVoiceProvider(value);
+                }}
+                onSpeak={(text) => void readAloud(text)}
+                stopSpeech={stopSpeech}
+              />
+            </div>
+          ) : (
+            <>
+              <div className="explorer-content">
+                <div className="eyebrow">YOUR CURIOSITY, ON THE MAP</div>
+                <h1>
+                  Where shall <br />
+                  we wander?
+                </h1>
+                <p className="intro">
+                  A quiet park. A good coffee. Somewhere new. Ask a question and
+                  see real places come into view.
+                </p>
+                {!result && !busy && (
+                  <div
+                    className="sample-prompts"
+                    aria-label="Example questions"
+                  >
+                    {prompts.map((prompt) => (
+                      <button key={prompt} onClick={() => void search(prompt)}>
+                        {prompt}
+                        <span aria-hidden="true">↗</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+                <div role="status" aria-live="polite" className="status-line">
+                  {busy
+                    ? "Finding real places and getting the globe ready…"
+                    : notice}
+                </div>
+                {lastQuestion && (result || busy) && (
+                  <p className="asked">You asked: {lastQuestion}</p>
+                )}
+                {result?.status === "failed" && (
+                  <div className="message error" role="alert">
+                    <p>{result.message}</p>
+                    {result.errorCode === "UNSUPPORTED_CATEGORY" && (
+                      <div className="choices" aria-label="Supported searches">
+                        {prompts.map((prompt) => (
+                          <button
+                            key={prompt}
+                            onClick={() => void search(prompt)}
+                          >
+                            {prompt}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    {result.retryable && (
+                      <button onClick={() => void search(lastQuestion)}>
+                        Try this search again
+                      </button>
+                    )}
+                  </div>
+                )}
+                {result?.status === "needs_clarification" && (
+                  <div className="message">
+                    {medical && (
+                      <p className="medical-notice">{medicalNotice}</p>
+                    )}
+                    <h2>{result.question}</h2>
+                    <div className="choices">
+                      {result.choices.map((choice) => (
+                        <button
+                          key={choice.token}
+                          onClick={() =>
+                            void search(lastQuestion, choice.token)
+                          }
+                        >
+                          {choice.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {result?.status === "no_results" && (
+                  <div className="message">
+                    <p>{result.summary}</p>
+                    {radius < 10000 && (
+                      <p>
+                        Choose a wider search radius below, then send your
+                        question again.
+                      </p>
+                    )}
+                  </div>
+                )}
+                {result?.status === "ready" && (
+                  <>
+                    <div className="results-heading">
+                      <h2>{result.places.length} places to explore</h2>
+                      <span>
+                        {result.aiMode === "ai_verified"
+                          ? "AI interpreted · provider results"
+                          : "Keyword search · provider results"}
+                      </span>
+                    </div>
+                    <p className="result-summary">{result.summary}</p>
+                    {result.safetyNotice && (
+                      <p className="medical-notice">{result.safetyNotice}</p>
+                    )}
+                    {config.speechEnabled && (
+                      <button
+                        className="read-aloud"
+                        disabled={muted || volume === 0}
+                        onClick={() =>
+                          speaking
+                            ? stopSpeech()
+                            : void readAloud(
+                                `${result.safetyNotice ?? ""} ${result.summary}`,
+                              )
+                        }
+                      >
+                        {speaking
+                          ? "Stop voice reply"
+                          : "Read answer aloud · AI voice"}
+                      </button>
+                    )}
+                    <ol className="results">
+                      {places.map((place) => (
+                        <li
+                          key={place.id}
+                          className={
+                            selected === place.id ? "place selected" : "place"
+                          }
+                        >
+                          <button
+                            className="place-select"
+                            ref={(element) => {
+                              if (element) cards.current.set(place.id, element);
+                              else cards.current.delete(place.id);
+                            }}
+                            aria-pressed={selected === place.id}
+                            onClick={() => setSelected(place.id)}
+                          >
+                            <span className="place-number">{place.rank}</span>
+                            <span>
+                              <strong>{place.name}</strong>
+                              <small>{place.distanceLabel}</small>
+                            </span>
+                            <span aria-hidden="true">↗</span>
+                          </button>
+                          <div className="place-details">
+                            <p>{place.address || "Address not listed"}</p>
+                            <p>
+                              <span className="detail-label">Hours</span>{" "}
+                              {place.openingHours || "Opening hours not listed"}
+                            </p>
+                            {place.wikiSummary && (
+                              <p className="wiki-summary">
+                                {place.wikiSummary}
+                              </p>
+                            )}
+                            <div className="place-links">
+                              <a
+                                href={place.osmUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                              >
+                                View on OpenStreetMap ↗
+                              </a>
+                              {place.wikiUrl && (
+                                <a
+                                  href={place.wikiUrl}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                >
+                                  Wikipedia ↗
+                                </a>
+                              )}
+                            </div>
+                            <small className="retrieved">
+                              Retrieved{" "}
+                              {new Date(place.retrievedAt).toLocaleTimeString()}
+                              . Provider details may be out of date.
+                            </small>
+                          </div>
+                        </li>
+                      ))}
+                    </ol>
+                  </>
+                )}
+              </div>
+              <div className="composer-wrap">
+                {location && (
+                  <p className="context-label">Search area: {location.label}</p>
+                )}
+                <form
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    void search(question);
                   }}
                 >
-                  {config.voiceProviders.map((provider) => (
-                    <option key={provider} value={provider}>
-                      {provider === "sarvam"
-                        ? "Indian / mixed languages · Sarvam"
-                        : "English / international · ElevenLabs"}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            )}
-            {config.voiceEnabled && (
-              <Voice
-                key={selectedProvider}
-                provider={selectedProvider}
-                onTranscript={(text) => {
-                  setQuestion(text);
-                  setNotice(
-                    "Transcript ready. Review it, then choose Find places.",
-                  );
-                  input.current?.focus();
-                }}
-                onError={setNotice}
-              />
-            )}
-            <p className="privacy-note">
-              Your search area goes to map providers. Device location is
-              optional.{" "}
-              {config.voiceEnabled
-                ? `Voice by ${selectedProvider === "sarvam" ? "Sarvam" : "ElevenLabs"}. Replies currently use English.`
-                : "Text search is available; voice is not enabled."}
-            </p>
-          </div>
+                  <label htmlFor="question">Ask Geozity</label>
+                  <div className="composer">
+                    <textarea
+                      ref={input}
+                      id="question"
+                      value={question}
+                      maxLength={500}
+                      onChange={(e) => setQuestion(e.target.value)}
+                      placeholder={
+                        context
+                          ? "Try “cafes instead”…"
+                          : "Find parks in Bengaluru…"
+                      }
+                      rows={2}
+                    />
+                    <button
+                      className="send"
+                      type="submit"
+                      disabled={!question.trim()}
+                      aria-label="Find places"
+                    >
+                      ↗
+                    </button>
+                  </div>
+                  <div className="composer-tools">
+                    <button type="button" onClick={locate} disabled={gpsBusy}>
+                      {gpsBusy
+                        ? "Locating…"
+                        : gps
+                          ? "Location ready ✓"
+                          : "Use my location"}
+                    </button>
+                    <label>
+                      Within{" "}
+                      <select
+                        aria-label="Search radius"
+                        value={radius}
+                        onChange={(e) => {
+                          const parsed =
+                            requestSchema.shape.radiusMeters.safeParse(
+                              Number(e.target.value),
+                            );
+                          if (parsed.success) setRadius(parsed.data);
+                        }}
+                      >
+                        <option value="1000">1 km</option>
+                        <option value="3000">3 km</option>
+                        <option value="5000">5 km</option>
+                        <option value="10000">10 km</option>
+                      </select>
+                    </label>
+                  </div>
+                </form>
+                {busy && (
+                  <button
+                    className="cancel-search"
+                    onClick={() => {
+                      active.current?.abort();
+                      active.current = null;
+                      setBusy(false);
+                      setNotice("Search canceled.");
+                    }}
+                  >
+                    Cancel search
+                  </button>
+                )}
+                {(config.voiceEnabled || config.speechEnabled) && (
+                  <label className="voice-choice">
+                    Voice service{" "}
+                    <select
+                      aria-label="Voice service"
+                      value={selectedProvider}
+                      onChange={(e) => {
+                        const provider = voiceProviderSchema.safeParse(
+                          e.target.value,
+                        );
+                        if (provider.success) {
+                          stopSpeech();
+                          setVoiceProvider(provider.data);
+                        }
+                      }}
+                    >
+                      {config.voiceProviders.map((provider) => (
+                        <option key={provider} value={provider}>
+                          {provider === "sarvam"
+                            ? "Indian / mixed languages · Sarvam"
+                            : "English / international · ElevenLabs"}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                )}
+                {config.voiceEnabled && (
+                  <Voice
+                    key={selectedProvider}
+                    provider={selectedProvider}
+                    onTranscript={(text) => {
+                      setQuestion(text);
+                      setNotice(
+                        "Transcript ready. Review it, then choose Find places.",
+                      );
+                      input.current?.focus();
+                    }}
+                    onError={setNotice}
+                    onStart={stopSpeech}
+                  />
+                )}
+                <p className="privacy-note">
+                  Your search area goes to map providers. Device location is
+                  optional.{" "}
+                  {config.voiceEnabled
+                    ? `Voice by ${selectedProvider === "sarvam" ? "Sarvam" : "ElevenLabs"}. Replies currently use English.`
+                    : "Text search is available; voice is not enabled."}
+                </p>
+              </div>
+            </>
+          )}
         </aside>
         <Globe
+          motionEnabled={motionEnabled}
           places={places}
           location={location}
           selectedId={selected}

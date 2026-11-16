@@ -9,6 +9,7 @@ import {
 import { type Env, PublicError } from "./config";
 import { reserve } from "./budget";
 import { upstream, jsonBody } from "./http";
+import { candidateSchema, type Candidate } from "../domain/outing";
 
 export const providerCategories: Record<Category, string[]> = {
   hospital: ["healthcare.hospital"],
@@ -29,6 +30,7 @@ const properties = pointSchema
     state: z.string().nullish(),
     country: z.string().nullish(),
     result_type: z.string().nullish(),
+    timezone: z.object({ name: z.string() }).nullish(),
     categories: z.array(z.string()).nullish(),
     datasource: z
       .object({ raw: z.record(z.string(), z.unknown()).nullish() })
@@ -83,7 +85,8 @@ export async function geocode(
   env: Env,
   client: string,
   text: string,
-): Promise<Location[]> {
+  includeTimezone = false,
+): Promise<(Location & { timezone?: string })[]> {
   const records = await features(env, client, "/v1/geocode/search", {
     text,
     limit: "5",
@@ -100,15 +103,23 @@ export async function geocode(
       lon: p.lon,
       label: p.formatted!.slice(0, 1000),
       city: `${p.city ?? p.formatted}|${p.state ?? ""}|${p.country ?? ""}`,
+      ...(includeTimezone && p.timezone?.name
+        ? { timezone: p.timezone.name }
+        : {}),
     }));
   const byCity = new Map<string, (typeof locations)[number]>();
   for (const location of locations)
     if (!byCity.has(location.city)) byCity.set(location.city, location);
   const distinct = [...byCity.values()];
   // A shared city name across regions needs a human choice, never a guessed first hit.
-  return distinct
-    .slice(0, 5)
-    .map(({ lat, lon, label }) => ({ lat, lon, label }));
+  return distinct.slice(0, 5).map(({ lat, lon, label, ...rest }) => ({
+    lat,
+    lon,
+    label,
+    ...(includeTimezone && "timezone" in rest
+      ? { timezone: rest.timezone }
+      : {}),
+  }));
 }
 function text(raw: Record<string, unknown>, ...keys: string[]): string | null {
   for (const key of keys)
@@ -122,7 +133,8 @@ export async function places(
   category: Category,
   location: Location,
   radius: number,
-): Promise<Place[]> {
+  planning = false,
+): Promise<(Place & { evidence?: Candidate["evidence"] })[]> {
   const filters = providerCategories[category];
   const records = await features(env, client, "/v2/places", {
     categories: filters.join(","),
@@ -134,6 +146,7 @@ export async function places(
   const collected: (Place & {
     wikipedia: string | null;
     wikidata: string | null;
+    evidence?: Candidate["evidence"];
   })[] = [];
   const retrievedAt = new Date().toISOString();
   for (const record of records) {
@@ -155,6 +168,7 @@ export async function places(
             : null;
     const osmId = raw.osm_id;
     if (!osmType || !/^[1-9]\d*$/.test(String(osmId))) continue;
+    if (planning && !record.name?.trim()) continue;
     const distance = distanceMeters(location, record);
     if (distance > radius) continue;
     collected.push({
@@ -174,9 +188,33 @@ export async function places(
       wikiUrl: null,
       wikipedia: text(raw, "wikipedia"),
       wikidata: text(raw, "wikidata"),
+      ...(planning
+        ? {
+            evidence: {
+              wheelchair:
+                raw.wheelchair === "yes"
+                  ? ("yes" as const)
+                  : raw.wheelchair === "no"
+                    ? ("no" as const)
+                    : ("unknown" as const),
+              vegetarian: ["yes", "only"].includes(
+                String(raw["diet:vegetarian"]),
+              )
+                ? ("yes" as const)
+                : raw["diet:vegetarian"] === "no"
+                  ? ("no" as const)
+                  : ("unknown" as const),
+              vegan: ["yes", "only"].includes(String(raw["diet:vegan"]))
+                ? ("yes" as const)
+                : raw["diet:vegan"] === "no"
+                  ? ("no" as const)
+                  : ("unknown" as const),
+            },
+          }
+        : {}),
     });
   }
-  if (records.length && !collected.length)
+  if (!planning && records.length && !collected.length)
     throw new PublicError(
       "INVALID_PROVIDER_DATA",
       "The provider returned no usable records for this category. Try another area.",
@@ -189,7 +227,7 @@ export async function places(
     .slice(0, 10);
   await Promise.all(
     ranked
-      .filter((place) => place.wikipedia || place.wikidata)
+      .filter((place) => !planning && (place.wikipedia || place.wikidata))
       .slice(0, 3)
       .map(async (place) => {
         const article = await knowledge(
@@ -208,6 +246,16 @@ export async function places(
       ...place,
       rank: i + 1,
     }),
+  );
+}
+export async function planningPlaces(
+  env: Env,
+  client: string,
+  category: Candidate["category"],
+  location: Location,
+): Promise<Candidate[]> {
+  return (await places(env, client, category, location, 5000, true)).map((p) =>
+    candidateSchema.parse(p),
   );
 }
 const wikiSchema = z.object({

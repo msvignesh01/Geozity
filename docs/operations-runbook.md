@@ -1,6 +1,6 @@
 # Operations runbook
 
-Checked 16 November 2026 through the signed-in Vercel dashboard and repository configuration. Current scope is Version 1 for the hackathon; further roadmap development is paused.
+Checked 16 November 2026 through the signed-in Vercel dashboard and repository configuration. The deployed scope is Version 1 for the hackathon. The owner subsequently resumed local H2/H3 work; it has not been deployed. See the verification record for remaining release gates.
 
 ## Hosting inventory
 
@@ -38,9 +38,13 @@ Use geozity-globe for the hackathon. Deleting the earlier project, moving geozit
 | VOICE_CONFIGURATION / VOICE_TIMEOUT    | Check account model access or provider availability. Do not silently substitute models or spend more.                                            |
 | Map does not render                    | Check WebGL/browser support and OpenFreeMap tile access; the list should remain usable. Use the map retry control.                               |
 
-Recorded daily shared caps: 200 map calls, 30 AI calls, 120 voice seconds and 3000 spoken characters. These limit app reservations, not all provider-account usage. Direct verification scripts bypass application reservations and consume credits. Never run them as a retry loop.
+Recorded daily shared caps: 200 map reservation units, 30 AI calls, 120 voice seconds and 3000 spoken characters. Routing can reserve several map units per call. These limit app reservations, not all provider-account usage or exact billing credits. Direct verification scripts bypass application reservations and consume credits. Never use them to work around an exhausted app allowance or run them as a retry loop.
+
+H1–H3 source is maintained on `main`. Rewriting/pushing `main` may trigger the existing Vercel builds, but it does not deploy the separately hosted Worker. `globe/vercel.json` still forwards to that Worker and its approved production origin. Do not treat a green website build as a matching frontend/backend release. An approved release must deploy the compatible Worker and verify search, outing edits, origin handling and voice together, without changing the old site's traffic.
 
 ## Observability and recovery
+
+For local Worker packaging checks, run `pnpm exec wrangler deploy --config wrangler.toml --dry-run --outdir .wrangler/horizons-dry-run` inside `globe/`. The explicit config avoids stale Vite-generated deployment redirection. A successful dry-run checks packaging only and does not prove remote startup or authorize deployment.
 
 Cloudflare observability is enabled. Current API logs include request ID, method, status, duration and stable error codes; budget/provider/AI warnings identify fallback or reservation failure. Correlate using request IDs and times. Do not log secret values, questions, precise coordinates, context tokens or recordings. Never disable storage or substitute fake results to restore apparent success.
 

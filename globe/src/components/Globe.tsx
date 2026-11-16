@@ -9,6 +9,7 @@ export function Globe({
   onSelect,
   medical,
   styleUrl,
+  motionEnabled = true,
 }: {
   places: Place[];
   location: Location | null;
@@ -16,6 +17,7 @@ export function Globe({
   onSelect: (id: string) => void;
   medical: boolean;
   styleUrl: string;
+  motionEnabled?: boolean;
 }) {
   const container = useRef<HTMLDivElement>(null);
   const map = useRef<LibreMap | null>(null);
@@ -23,6 +25,11 @@ export function Globe({
   const select = useRef(onSelect);
   select.current = onSelect;
   const rotating = useRef(true);
+  const motionAllowed = useRef(motionEnabled);
+  motionAllowed.current = motionEnabled;
+  useEffect(() => {
+    if (!motionEnabled) map.current?.stop();
+  }, [motionEnabled]);
   const selected = useRef(selectedId);
   selected.current = selectedId;
   const [ready, setReady] = useState(false);
@@ -88,6 +95,7 @@ export function Globe({
           last = now;
           if (
             rotating.current &&
+            motionAllowed.current &&
             !motion.matches &&
             !document.hidden &&
             !instance.isMoving() &&
@@ -160,7 +168,9 @@ export function Globe({
         return;
       }
       const reduced =
-        medical || matchMedia("(prefers-reduced-motion: reduce)").matches;
+        medical ||
+        !motionAllowed.current ||
+        matchMedia("(prefers-reduced-motion: reduce)").matches;
       if (places.length) {
         // Unwrap longitudes around the reference so antimeridian searches stay local.
         const lng = (lon: number) =>

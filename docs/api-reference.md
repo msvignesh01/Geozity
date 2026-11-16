@@ -1,6 +1,6 @@
 # API reference
 
-Current globe API, checked against globe/src/server/app.ts and globe/src/domain/contracts.ts on 16 November 2026. The website calls same-origin /api through Vercel; direct Worker origin is https://geozity-api.geozity-globe.workers.dev. Local website/API is http://127.0.0.1:8780.
+Globe API source on `main`, checked against `globe/src/server/app.ts` and the search/outing/voice domain contracts on 16 November 2026. The outing routes require the matching Worker release; a source push alone does not deploy that API. The website calls same-origin /api through Vercel; direct Worker origin is https://geozity-api.geozity-globe.workers.dev. Local website/API is http://127.0.0.1:8780.
 
 ## Access and safety
 
@@ -39,6 +39,14 @@ Response variants:
 | failed              | message, errorCode, retryable                                                                                    |
 
 Locations contain label, lat and lon. Each place contains id, rank, name, category, lat, lon, address, openingHours, distanceMeters, distanceLabel, osmUrl, wikiSummary, wikiUrl and retrievedAt (UTC timestamp). Address/hours/article fields can be null. Category is hospital, park, cafe, restaurant, pharmacy, museum, attraction, library or supermarket. Distances are straight-line. Unsupported requests return failed with UNSUPPORTED_CATEGORY; do not infer success from HTTP 200 alone. Provider/cache status is explicit; current successful searches return cached=false.
+
+## Branch outing endpoints (not released to production)
+
+`POST /api/outing/create` accepts a UUID `requestId`, validated `input` and optional `choiceToken`. Input requires area, occasion, localStart, an IANA timezone, groupSize (1–20), transport (`walk`, `bicycle`, `drive`), durationMinutes (30–720), nullable budget, requirements, preferences and 2–5 category/dwell-minute stops. Requirements and budget distinguish `must` from `prefer`. Medical categories are excluded from outing stops. See `globe/src/domain/outing.ts` for the strict contract.
+
+`POST /api/outing/edit` accepts UUID requestId, signed planToken, stopId and action (`replace` or `remove`). Draft tokens are session-bound and expire after 30 minutes; edits do not extend evidence expiry. Minimum remaining stops is two. Neither endpoint stores plans. Maximum request body is 120000 bytes. They share the existing session, origin, budget and 20-second provider deadline protections.
+
+Responses are `ready` (plan and signed planToken), `needs_clarification` (question and choices), `infeasible` (message), or `failed` (message/errorCode/retryable). A `ready` response means a draft was constructed: inspect `plan.status` (`checked`, `needs_confirmation`, `infeasible`) and warnings before treating it as feasible. Unverified routing has null leg distances/times and null subsequent arrivals. `checked` covers routes and supported listed opening windows, not reservations, costs, group availability or current business status.
 
 ## POST /api/voice/transcribe
 

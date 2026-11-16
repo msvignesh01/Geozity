@@ -222,10 +222,149 @@ test("provider failures offer a retry and preserve text entry", async ({
   );
   await page.goto("/");
   await page
-    .getByRole("button", { name: "Museums in London", exact: true })
-    .click();
+    .getByLabel("Ask Geozity", { exact: true })
+    .fill("Museums in London");
+  await page.getByRole("button", { name: "Find places", exact: true }).click();
   await expect(
     page.getByRole("button", { name: "Try this search again" }),
   ).toBeVisible();
   await expect(page.getByLabel("Ask Geozity", { exact: true })).toBeEnabled();
+  await expect(page.getByLabel("Ask Geozity", { exact: true })).toHaveValue(
+    "Museums in London",
+  );
+});
+
+test("a completed search preserves a newer question typed while waiting", async ({
+  page,
+}) => {
+  let release!: () => void;
+  const waiting = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  await page.route("**/api/location/search", async (route) => {
+    await waiting;
+    await route.fulfill({
+      json: {
+        requestId: route.request().postDataJSON().requestId,
+        status: "ready",
+        summary: "Found 1 park near Bengaluru.",
+        aiMode: "rule_based",
+        safetyNotice: null,
+        resolvedLocation: { label: "Bengaluru", lat: 12.97, lon: 77.59 },
+        contextToken: "test-context",
+        places: [place],
+        cached: false,
+      },
+    });
+  });
+  await page.goto("/");
+  const question = page.getByLabel("Ask Geozity", { exact: true });
+  await question.fill("Parks in Bengaluru");
+  const sent = page.waitForRequest("**/api/location/search");
+  await page.getByRole("button", { name: "Find places", exact: true }).click();
+  await sent;
+  await question.fill("Museums in London");
+  release();
+  await expect(
+    page.getByRole("heading", { name: "1 places to explore" }),
+  ).toBeVisible();
+  await expect(question).toHaveValue("Museums in London");
+});
+
+test("daily quota exhaustion keeps text and reset available without a retry loop", async ({
+  page,
+}) => {
+  let requests = 0;
+  await page.route("**/api/location/search", async (route) => {
+    requests += 1;
+    await route.fulfill({
+      status: 429,
+      json: {
+        requestId: route.request().postDataJSON().requestId,
+        status: "failed",
+        errorCode: "QUOTA_REACHED",
+        message:
+          "Today’s usage allowance has been reached. Please return tomorrow.",
+        retryable: false,
+      },
+    });
+  });
+  await page.goto("/");
+  await page
+    .getByRole("button", { name: "Parks in Bengaluru", exact: true })
+    .click();
+  await expect(page.getByRole("alert")).toContainText(
+    "Please return tomorrow.",
+  );
+  await expect(
+    page.getByRole("button", { name: "Try this search again" }),
+  ).toHaveCount(0);
+  await page
+    .getByLabel("Ask Geozity", { exact: true })
+    .fill("Museums in London");
+  await expect(page.getByLabel("Ask Geozity", { exact: true })).toHaveValue(
+    "Museums in London",
+  );
+  expect(requests).toBe(1);
+  await page.getByRole("button", { name: "Start fresh" }).click();
+  await expect(page.getByRole("alert")).toHaveCount(0);
+  await expect(page.locator(".world-caption")).toBeVisible();
+});
+
+test("missing hospital location keeps the medical caution visible", async ({
+  page,
+}) => {
+  await page.route("**/api/location/search", (route) =>
+    route.fulfill({
+      json: {
+        requestId: route.request().postDataJSON().requestId,
+        status: "needs_clarification",
+        question: "Which city or neighborhood should I search?",
+        choices: [],
+        contextToken: "fixture",
+      },
+    }),
+  );
+  await page.goto("/");
+  await page
+    .getByLabel("Ask Geozity", { exact: true })
+    .fill("Nearest hospital");
+  await page.getByRole("button", { name: "Find places", exact: true }).click();
+  await expect(
+    page.getByText(
+      /For a medical emergency, contact local emergency services immediately/,
+    ),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", {
+      name: "Which city or neighborhood should I search?",
+    }),
+  ).toBeVisible();
+});
+test("unsupported requests offer working supported-search shortcuts", async ({
+  page,
+}) => {
+  const questions: string[] = [];
+  await page.route("**/api/location/search", (route) => {
+    const body = route.request().postDataJSON();
+    questions.push(body.question);
+    return route.fulfill({
+      json: {
+        requestId: body.requestId,
+        status: "failed",
+        errorCode: "UNSUPPORTED_CATEGORY",
+        message: "Choose a supported category.",
+        retryable: false,
+      },
+    });
+  });
+  await page.goto("/");
+  await page
+    .getByLabel("Ask Geozity", { exact: true })
+    .fill("Book a flight to Paris");
+  await page.getByRole("button", { name: "Find places", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Parks in Bengaluru", exact: true })
+    .click();
+  expect(questions).toEqual(["Book a flight to Paris", "Parks in Bengaluru"]);
 });

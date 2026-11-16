@@ -33,7 +33,11 @@ ElevenLabs uses ELEVENLABS_API_KEY and optional ELEVENLABS_VOICE_ID; absent a vo
 
 ## Usage limits and pause switch
 
-Recorded hosted shared daily allowances are 200 map calls, 30 AI calls, 120 voice seconds and 3000 spoken characters. A search can consume more than one map call. Per-client limits also apply. Supabase reservations use UTC days; a failed reservation blocks chargeable work. A provider failure may still consume the reserved allowance. These are app safeguards, not a billing guarantee or substitute for account spending controls.
+Recorded hosted shared daily allowances are 200 map units, 30 AI calls, 120 voice seconds and 3000 spoken characters. Geocoding and POI requests each reserve one map unit; routing reserves baseline leg units plus two conservative margin units. These app units are not an exact provider bill. Per-client limits also apply. Supabase reservations use UTC days; a failed reservation blocks chargeable work. A provider failure may still consume the reserved allowance. These are app safeguards, not a billing guarantee or substitute for account spending controls.
+
+H2 uses the existing map key, budget meter and signing secret; it adds no database, account or provider credential. Draft evidence expires after 30 minutes, with 2–5 stops and a 5 km candidate radius. Opening-hour parsing is deliberately limited to supported simple expressions; complex/holiday expressions stay unverified. Voice volume/mute and globe-motion choices remain in page memory and do not alter vendor settings.
+
+The owner approved adult-only initial voice testers. Keep youth access and vendor retention/account settings under review; do not infer zero vendor retention from Geozity's lack of recording storage. Local AI/voice remain off unless explicitly enabled in existing local settings.
 
 DISABLE_EXTERNAL_PROVIDERS=true pauses metered search/voice work; optional AI falls back to rules. Static map tiles are loaded by the browser separately. Limits are DAILY_MAP_CALL_LIMIT, DAILY_AI_CALL_LIMIT, DAILY_VOICE_SECONDS_LIMIT and DAILY_SPEECH_CHAR_LIMIT. Missing/invalid limits fail closed.
 

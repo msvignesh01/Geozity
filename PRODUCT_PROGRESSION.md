@@ -1,10 +1,10 @@
-> Source update — 16 November 2026: The globe work and this gallery were merged into GitHub main (90c3c42). The remote version-2-preview branch was removed after merge; its local checkpoint remains. There is no version-1 branch. The Version 1 hackathon milestone and V1/V2 screenshot-stage distinction below remain unchanged. See the [current documentation](docs/index.md).
+> Source update — 16 November 2026: The globe/gallery and tested H1–H3 implementation are maintained on `main`. This gallery still shows only the supplied earlier screenshots. See the [current documentation](docs/index.md) for implementation and acceptance status.
 
 # Geozity product progression
 
 These screenshots are grouped by their supplied V1 and V2 filenames. They show interface states, not proof that every planned feature or release check is complete. No release dates are inferred from them.
 
-**Current checkpoint: stable Version 1 for the hackathon.** The screenshot labels describe the interface's development history. The current release scope is the existing globe, live search, place details and optional voice; the long-term outing planner and further voice/social work are paused until the owner asks to resume.
+**Deployed checkpoint: Version 1 for the hackathon.** The screenshot labels describe the interface's development history. The owner has resumed H2 outing planning and H3 voice work on the implementation branch. These six images do not show that new work or establish its release acceptance. Social features remain later horizons.
 
 ## V1 — chat beside a street map
 

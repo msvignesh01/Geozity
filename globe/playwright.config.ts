@@ -3,6 +3,8 @@ export default defineConfig({
   testDir: "./tests/browser",
   timeout: 30000,
   fullyParallel: false,
+  // Software WebGL and synthetic audio compete for resources across Chrome instances.
+  workers: 2,
   use: {
     baseURL: "http://127.0.0.1:8780",
     channel: "chrome",
