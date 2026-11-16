@@ -106,3 +106,35 @@ test("an unsupported saved voice falls back to Jessica", async ({ page }) => {
     "jessica",
   );
 });
+
+test("a failed voice connection is explained and clears when the visitor retries", async ({
+  page,
+}) => {
+  let calls = 0;
+  await page.route("**/api/voice/speak", (route) => {
+    calls += 1;
+    if (calls === 1) return route.abort("failed");
+    return route.fulfill({
+      contentType: "audio/wav",
+      body: Buffer.from(encodeWav(new Float32Array(3200))),
+    });
+  });
+  await page.goto("/");
+  await page
+    .getByRole("button", { name: "Parks in Bengaluru", exact: true })
+    .click();
+  const play = page.getByRole("button", {
+    name: "Read answer aloud · AI voice",
+    exact: true,
+  });
+  await play.click();
+  const failure = page.getByText(
+    "The voice service could not connect. Please try again or use text.",
+    { exact: true },
+  );
+  await expect(failure).toBeVisible();
+  await play.click();
+  await expect.poll(() => calls).toBe(2);
+  await expect(failure).toBeHidden();
+  await expect(play).toBeVisible();
+});

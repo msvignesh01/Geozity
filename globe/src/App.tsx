@@ -237,6 +237,7 @@ export function App() {
   async function readAloud(text: string) {
     stopSpeech();
     if (muted || volume === 0) return;
+    setNotice("");
     const controller = new AbortController();
     speechRequest.current = controller;
     setSpeaking(true);
@@ -271,9 +272,11 @@ export function App() {
       if (speechRequest.current === controller) {
         stopSpeech();
         setNotice(
-          error instanceof Error
-            ? error.message
-            : "The spoken reply could not play.",
+          error instanceof TypeError
+            ? "The voice service could not connect. Please try again or use text."
+            : error instanceof Error
+              ? error.message
+              : "The spoken reply could not play.",
         );
       }
     }
