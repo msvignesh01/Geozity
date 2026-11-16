@@ -1,108 +1,35 @@
 # Project structure
 
-## Top-level layout
+Checked 16 November 2026. Both application generations remain deliberately preserved.
 
-```text
-Geozity/
-├── .dockerignore
-├── .env.example
-├── .gitattributes
-├── .gitignore
-├── .vercelignore
-├── Dockerfile
-├── README.md
-├── render.yaml
-├── backend/
-├── frontend/
-├── scripts/
-└── docs/
-```
+| Path                                             | Responsibility                                                                         |
+| ------------------------------------------------ | -------------------------------------------------------------------------------------- |
+| globe/src/App.tsx                                | Current search UI, state, cancellation, optional location and voice selection          |
+| globe/src/components/Globe.tsx                   | MapLibre globe, markers, selection and map fallback                                    |
+| globe/src/components/Voice.tsx                   | Consent, recording, cancellation and transcript review                                 |
+| globe/src/domain/                                | Validated search/response contracts, categories, intent rules and voice model defaults |
+| globe/src/server/app.ts                          | Hono API routes and request/session boundaries                                         |
+| globe/src/server/maps.ts                         | Geoapify search, result normalization/ranking and article enrichment                   |
+| globe/src/server/security.ts                     | Signed anonymous sessions and search context                                           |
+| globe/src/server/budget.ts                       | Fail-closed Supabase usage reservations                                                |
+| globe/src/server/ai.ts and intent-provider.ts    | Optional direct Sarvam interpretation                                                  |
+| globe/src/server/voice.ts and voice-providers.ts | Audio validation, allowances and provider calls                                        |
+| globe/worker.ts                                  | Cloudflare API entrypoint                                                              |
+| globe/supabase/migrations/                       | Database setup SQL; review before applying to any shared project                       |
+| globe/scripts/                                   | Local setting preparation and opt-in live AI/voice checks                              |
+| globe/tests/                                     | Unit/integration, controlled browser and separate live tests                           |
+| globe/vercel.json                                | Current website's API forwarding and headers                                           |
+| globe/wrangler.toml                              | Hosted Worker configuration, account and non-secret limits                             |
+| globe/wrangler.local.toml                        | Local website/Worker configuration                                                     |
+| frontend/                                        | Earlier React 18 / Leaflet website, with its own manifest and Vercel config            |
+| backend/                                         | Earlier Flask API, provider services and Python tests                                  |
+| scripts/start-local.ps1                          | Earlier app's combined local startup                                                   |
+| Dockerfile and render.yaml                       | Earlier app's container/Render deployment                                              |
+| readme-assets/                                   | Six original progression screenshots                                                   |
+| docs/                                            | Current user, engineering and operating references                                     |
+| PRODUCT_PROGRESSION.md                           | Screenshot gallery with honest stage descriptions                                      |
+| .deployment/                                     | Ignored local deployment/evidence files and preserved paused drafts; not shipped       |
 
-## Backend
+The repository has no root package.json; run package commands in the intended app folder. Each frontend has its own pnpm lockfile. .env.local, .dev.vars, dependency directories and build/test outputs are ignored. Some historical planning/evidence documents are local-only under existing ignore rules. Documentation updates do not change those rules.
 
-```text
-backend/
-├── app.py
-├── conftest.py
-├── gunicorn.conf.py
-├── requirements.lock.txt
-├── requirements.render.txt
-├── requirements.txt
-├── services/
-│   ├── __init__.py
-│   ├── cache.py
-│   ├── errors.py
-│   ├── geo_utils.py
-│   ├── intent_parser.py
-│   ├── nominatim_client.py
-│   ├── overpass_client.py
-│   ├── photon_client.py
-│   ├── place_categories.py
-│   ├── validation.py
-│   └── wiki_client.py
-└── tests/
-    ├── browser_server.py
-    ├── test_assistant.py
-    ├── test_live_osm.py
-    ├── test_photon.py
-    └── test_regressions.py
-```
-
-### Important backend files
-
-- `app.py`: Flask app, health endpoint, chat endpoint, request flow, provider fallback logic, and final result assembly.
-- `services/intent_parser.py`: rule-based category and location extraction for natural-language queries.
-- `services/validation.py`: request validation and safe coordinate checks.
-- `services/overpass_client.py`: primary live POI search by category.
-- `services/nominatim_client.py`: geocoding and fallback POI search.
-- `services/photon_client.py`: mergeable OSM fallback for location and place search.
-- `services/wiki_client.py`: optional Wikipedia summary lookup.
-- `services/geo_utils.py`: distance, address, and place normalization logic.
-- `services/place_categories.py`: OSM tag mapping for the supported categories.
-
-## Frontend
-
-```text
-frontend/
-├── index.html
-├── package.json
-├── pnpm-lock.yaml
-├── pnpm-workspace.yaml
-├── postcss.config.js
-├── src/
-│   ├── App.tsx
-│   ├── api.ts
-│   ├── components/
-│   │   ├── ChatPanel.tsx
-│   │   ├── MapView.tsx
-│   │   └── PlaceCard.tsx
-│   ├── index.css
-│   ├── main.tsx
-│   ├── safe-url.ts
-│   └── types.ts
-├── tailwind.config.js
-├── tests/
-│   └── api.test.mjs
-├── tsconfig.json
-├── vercel.json
-├── vite.config.ts
-└── dist/
-```
-
-### Important frontend files
-
-- `src/App.tsx`: top-level state and message flow.
-- `src/api.ts`: fetch wrappers, validation of API responses, and service readiness polling.
-- `src/components/ChatPanel.tsx`: chat UI, example prompts, GPS button, and loading state.
-- `src/components/MapView.tsx`: Leaflet map, pins, and popups.
-- `src/components/PlaceCard.tsx`: result list cards and key metadata.
-
-## Scripts and deployment
-
-- `scripts/start-local.ps1`: local verification and server start
-- `Dockerfile`: builds frontend and backend into a single runtime image
-- `render.yaml`: Render deployment configuration for the Docker image
-
-## Documentation folder
-
-The `docs/` directory currently holds the project documentation and is the canonical location for user and developer references.
+The future outing planner is not connected to the current source. Paused drafts were preserved locally outside globe/src; they are not shipped or part of the supported API.

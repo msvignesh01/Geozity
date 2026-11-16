@@ -8,17 +8,48 @@ The current goal is a stable **Version 1 hackathon release**: the existing globe
 
 The supplied screenshots use **V1** and **V2** to label interface development stages. Those labels do not mean that two complete product releases have shipped.
 
-| Earlier chat-and-map interface | Newer Geozity exploration interface |
-| --- | --- |
+| Earlier chat-and-map interface                                                          | Newer Geozity exploration interface                                             |
+| --------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
 | ![Earlier Geozity welcome screen beside a Bengaluru street map](readme-assets/V1-1.png) | ![Newer Geozity cafe results with numbered map markers](readme-assets/v2-1.png) |
 
 See the [full screenshot progression](PRODUCT_PROGRESSION.md) for all six supplied images and descriptions of what each shows. [Open the current globe preview](https://geozity-globe.vercel.app).
 
-The setup instructions below describe the earlier React/Flask application; the current globe project lives in `globe/`.
+## Current Version 1 app
+
+The current app lives in `globe/`: a React/MapLibre website on Vercel, a Cloudflare API, Supabase usage protection, live Geoapify places, optional Wikipedia details and direct Sarvam/ElevenLabs voice. DeepSpace is not required. Voice transcripts are reviewed before search; answers currently use English. Distances are straight-line, not travel times.
+
+From the repository root, prepare only missing credentials in the existing `.env.local` using `.env.example`, then run:
+
+```powershell
+Set-Location globe
+pnpm install --frozen-lockfile
+pnpm dev
+```
+
+Open http://127.0.0.1:8780/. Supabase's usage function must already be initialized in the intended project. Local use consumes real provider/database capacity. AI/voice default off in samples; keys alone do not enable them. See [setup](docs/developer-setup.md) and [configuration](docs/configuration.md).
+
+Inside `globe/`, repeatable checks are `pnpm test`, `pnpm typecheck`, `pnpm format:check` and `pnpm build`. Live checks are separate and may consume credits. [Verification](docs/verification.md) distinguishes recorded results from pending physical-phone/human voice checks; passing checks do not certify the full roadmap.
+
+### Source and hosting names
+
+The globe work was merged into GitHub `main` in commit `90c3c42`. The remote `version-2-preview` branch was removed after that merge; a local checkpoint remains. There is no `version-1` branch. Version 1 names the hackathon scope; V1/V2 screenshot labels name interface stages.
+
+| Vercel project  | Folder      | Website                                                   | Server         |
+| --------------- | ----------- | --------------------------------------------------------- | -------------- |
+| `geozity-globe` | `globe/`    | [Current hackathon app](https://geozity-globe.vercel.app) | Cloudflare     |
+| `geozity`       | `frontend/` | [Earlier app](https://geozity.vercel.app)                 | Render / Flask |
+
+Both Vercel projects are in Vicky's Workspace, build from the same repository, and showed Ready on `main` during the 16 November review. They serve different interfaces. Both remain in place. No domain switch or project deletion is part of this documentation update.
+
+See the [documentation index](docs/index.md), [user guide](docs/user-guide.md), [API reference](docs/api-reference.md) and [operations runbook](docs/operations-runbook.md).
+
+## Earlier React/Flask app reference
+
+The following instructions apply only to `frontend/` and `backend/`, not `globe/`. Earlier local delivery notes are retained for context; current hosted inventory and operating guidance are above and in `docs/`.
 
 ## Start locally on Windows
 
-The tested environment uses Python 3.11 and Node.js 24.17.0. The repository has a pnpm lockfile. No paid AI key is required or used.
+The tested environment uses Python 3.11 and Node.js 24.17.0. The repository has a pnpm lockfile. No AI key is used by this earlier deterministic app.
 
 For an existing setup, run from the project folder:
 
@@ -76,7 +107,7 @@ Pop-Location
 
 The default server checks explicitly skip the live checks. Run the final command with `--live` to exercise real providers; skipping them is not evidence that live search works. The frontend tests use Node's built-in test runner and the existing TypeScript compiler. There is no configured standalone lint tool in this project; strict TypeScript checks reject unused frontend locals and parameters.
 
-For controlled browser checks, see [BROWSER_CHECKS.md](BROWSER_CHECKS.md). Its synthetic provider server is isolated under `backend/tests` and requires the explicit `--fixtures` flag. **Never use that entrypoint for the real product.** Normal startup uses `backend/app.py`, which queries real providers and never substitutes invented places.
+For controlled browser checks, see the local historical BROWSER_CHECKS.md. Its synthetic provider server is isolated under `backend/tests` and requires the explicit `--fixtures` flag. **Never use that entrypoint for the real product.** Normal startup uses `backend/app.py`, which queries real providers and never substitutes invented places.
 
 ## Development mode
 
@@ -103,13 +134,13 @@ Run `pnpm dev` inside `frontend` in another terminal and open http://127.0.0.1:5
 
 The root `.env` is optional. Its values are not committed. `PORT` controls the local server port; `NOMINATIM_URL` and `OVERPASS_URLS` allow replacing upstream provider URLs without editing source. The old `FLASK_ENV` and `OPENAI_API_KEY` examples are retained for compatibility and are not used by this application. They do not enable a language-model service.
 
-This is a local product, not an approved public hosting setup. It binds only to `127.0.0.1`. The Flask development server is not a production server. No public deployment, account system, database, payment system, or shared-environment change is included. Existing wildcard cross-origin behavior remains; public hosting must separately decide access, browser-origin restrictions, privacy, traffic controls, and a supported serving setup.
+Direct local startup binds to `127.0.0.1`; the Flask development server is not the hosted serving process. The earlier hosted app uses Vercel plus Render/Gunicorn and explicit allowed browser origins. It has no account or payment system and no application database. Those statements concern this earlier app only; the current globe uses Supabase usage counters.
 
 Each provider cache holds at most 256 entries for 15 minutes, with copies to avoid cross-request mutation. Four searches may be active in one process; extra requests receive a busy response. Nominatim requests share a process-wide serialized gate with at least 1.1 seconds between starts. **This gate is not shared across multiple processes or machines.** Public services have limited capacity and no availability guarantee. Do not scale this app against free public endpoints as though they were a contracted enterprise service.
 
 Operational logs include request method, status, duration, and provider failure type. The application does not deliberately log questions, precise coordinates, or response bodies. Public providers receive submitted search areas, and map tiles are loaded from OpenStreetMap in the browser. Device location is optional; a public release needs an owner-approved privacy notice and provider contact identity.
 
-The historical `option_a_build_plan.md` describes the original proposal, including ideas that are not implemented. It is retained unchanged and is not a delivery certificate. [PROJECT_MAP.md](PROJECT_MAP.md) records the survey and initial defects; [VERIFICATION.md](VERIFICATION.md) records the observed delivery checks and remaining limits.
+The historical `option_a_build_plan.md` describes the original proposal, including ideas that are not implemented. It is retained unchanged and is not a delivery certificate. the local historical PROJECT_MAP.md records the survey and initial defects; [VERIFICATION.md](docs/verification.md) records the observed delivery checks and remaining limits.
 
 ## Technical detail (optional)
 

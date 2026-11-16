@@ -1,138 +1,57 @@
 # API reference
 
-## Overview
+Current globe API, checked against globe/src/server/app.ts and globe/src/domain/contracts.ts on 16 November 2026. The website calls same-origin /api through Vercel; direct Worker origin is https://geozity-api.geozity-globe.workers.dev. Local website/API is http://127.0.0.1:8780.
 
-Geozity exposes a small HTTP API for the frontend. The API is not a general-purpose backend; it is a single chat-oriented search endpoint with a health check.
+## Access and safety
 
-## Base URL
+Anonymous search uses a signed HttpOnly, SameSite=Strict session cookie (Secure on HTTPS); it is not account authentication. POST requests validate origin, initialize/verify sessions and require configured storage. Cross-site browser requests are rejected. Origin checks are not authorization for private records. Follow-up/choice tokens are signed, session-bound and expire after one hour. Treat them as sensitive context; do not fabricate or reuse them across sessions.
 
-When the app is running locally, the base URL is:
+## GET /api/health
 
-```text
-http://127.0.0.1:5000
-```
+Returns status, product, platform, storage and aiMode. Current platform is Cloudflare Workers and storage is Supabase. aiMode is configured or rule_based. This is process/configuration health, not a live provider or database connectivity test.
 
-In deployment, the same environment hosts both the frontend and API under the same origin.
+## GET /api/config
 
-## Authentication and access control
+Returns voiceEnabled, speechEnabled, voiceProviders and mapStyleUrl. Provider names are sarvam and elevenlabs. Availability reflects switches, keys and configured limits, not proof of unused remaining quota. No secrets are returned.
 
-There is no login, bearer token, or role-based access system in the application code. The service is effectively anonymous and public. The only route protection present is the CORS policy and request validation on the API endpoints.
+## POST /api/location/search
 
-## `GET /api/health`
+JSON fields:
 
-Returns the service status and a brief product description.
+| Field          | Rule                                                          |
+| -------------- | ------------------------------------------------------------- |
+| requestId      | Required UUID                                                 |
+| question       | Required trimmed string, 1–500 characters                     |
+| deviceLocation | Optional/null numeric lat [-90,90], lon [-180,180]            |
+| contextToken   | Optional/null signed context, maximum 5000 characters         |
+| choiceToken    | Optional/null signed location choice, maximum 5000 characters |
+| radiusMeters   | 1000, 3000, 5000 or 10000; default 5000                       |
 
-### Example response
+Unknown root fields are rejected; maximum location-request body is 16 KiB.
 
-```json
-{
-  "status": "ok",
-  "product": "Geozity",
-  "stack": "React + Flask + Nominatim + Overpass + Photon + Leaflet + Wikipedia",
-  "ai_mode": "rule_based"
-}
-```
+Response variants:
 
-### Status codes
+| status              | Fields beyond status/requestId                                                                                   |
+| ------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| ready               | summary, aiMode (ai_verified or rule_based), safetyNotice, resolvedLocation, contextToken, places (1–10), cached |
+| needs_clarification | question, choices (up to five label/token pairs), contextToken                                                   |
+| no_results          | summary, resolvedLocation, contextToken, radiusMeters                                                            |
+| failed              | message, errorCode, retryable                                                                                    |
 
-- `200 OK` when the backend is running
+Locations contain label, lat and lon. Each place contains id, rank, name, category, lat, lon, address, openingHours, distanceMeters, distanceLabel, osmUrl, wikiSummary, wikiUrl and retrievedAt (UTC timestamp). Address/hours/article fields can be null. Category is hospital, park, cafe, restaurant, pharmacy, museum, attraction, library or supermarket. Distances are straight-line. Unsupported requests return failed with UNSUPPORTED_CATEGORY; do not infer success from HTTP 200 alone. Provider/cache status is explicit; current successful searches return cached=false.
 
-## `POST /api/chat`
+## POST /api/voice/transcribe
 
-Accepts a natural-language search request and returns a structured result payload.
+Body is audio/wav: mono 16 kHz, 16-bit PCM with the validated 44-byte WAV header, 0.1–30 seconds and at most 960044 bytes. X-Voice-Provider selects sarvam or elevenlabs (default elevenlabs). Returns JSON text, at most 500 characters. The UI records only after consent, converts audio and asks for transcript review before search. Sarvam uses translation mode to produce English text.
 
-### Request body
+## POST /api/voice/speak
 
-```json
-{
-  "message": "parks near me",
-  "user_location": { "lat": 12.97, "lon": 77.59 },
-  "last_context": {
-    "location_name": "Bengaluru",
-    "lat": 12.9716,
-    "lon": 77.5946,
-    "category": "park"
-  },
-  "pending_category": null
-}
-```
+Strict JSON object with text (1–500 trimmed characters) and optional provider (sarvam or elevenlabs, default elevenlabs). Returns audio/wav or audio/mpeg based on returned bytes. Voice must be enabled and the relevant allowance available. The route's shared body limit is 960044 bytes; that does not relax the text limit.
 
-### Validation rules
+## Failure semantics
 
-- `message` must be a non-empty string under 1000 characters
-- `user_location` must have numeric `lat` and `lon` values within valid bounds
-- `last_context` must include a valid location name and a supported category
-- `pending_category` must be one of the supported categories or `null`
+Public error responses contain status=failed, requestId, errorCode, message and retryable. Relevant HTTP statuses are 400 invalid input/context/audio, 403 denied origin, 413 oversized body, 429 allowance reached, 502 invalid/unavailable provider output or configuration, 503 unavailable setup/storage/provider/service and 504 timeout. Search outcome variants such as clarification or unsupported category may be HTTP 200. Unknown routes return 404 with an error field instead of the normal failure envelope. API responses are no-store. Consumers should validate the response contract, not assume every JSON response has the same fields.
 
-### Success responses
+## Earlier Flask contract
 
-#### `status: "ready"`
-
-```json
-{
-  "status": "ready",
-  "reply": "I found 5 parks near Bengaluru. The closest returned result is Cubbon Park (Approx. 1.2 km straight-line from Bengaluru).",
-  "safety_notice": null,
-  "resolved_location": {
-    "label": "Bengaluru",
-    "lat": 12.9716,
-    "lon": 77.5946,
-    "source": "Nominatim / OpenStreetMap"
-  },
-  "context": {
-    "location_name": "Bengaluru",
-    "lat": 12.9716,
-    "lon": 77.5946,
-    "category": "park"
-  },
-  "places": [
-    {
-      "id": "node/12345",
-      "rank": 1,
-      "name": "Cubbon Park",
-      "category": "park",
-      "lat": 12.976,
-      "lon": 77.592,
-      "distance_km": 1.2,
-      "distance_label": "Approx. 1.2 km straight-line from Bengaluru",
-      "address": "Cubbon Road, Bengaluru",
-      "opening_hours": "Opening hours not listed in OpenStreetMap",
-      "phone": null,
-      "website": null,
-      "wiki_summary": "A public park in central Bengaluru.",
-      "wiki_url": "https://en.wikipedia.org/wiki/Cubbon_Park",
-      "osm_url": "https://www.openstreetmap.org/node/12345"
-    }
-  ],
-  "attribution": "Map data © OpenStreetMap contributors (ODbL), Nominatim, Overpass API, Photon, Wikipedia/Wikidata."
-}
-```
-
-#### `status: "needs_location"`
-
-Returned when the user indicates a near-me search but GPS is not available or not yet supplied.
-
-#### `status: "unsupported_category"`
-
-Returned when the category is not among the supported categories. The response includes `suggested_categories`.
-
-#### `status: "location_not_found"`
-
-Returned when a geocoding lookup returns no usable place.
-
-#### `status: "no_results"`
-
-Returned when the downstream providers return no results for a valid request.
-
-### Error responses
-
-- `400 Bad Request` for invalid JSON or invalid request payloads
-- `413 Payload Too Large` when the message is too long
-- `503 Service Unavailable` when the provider stack is unavailable or busy
-- `500 Internal Server Error` for unexpected application failures
-
-The API always includes a JSON response with `status` and `reply` in the error and success paths.
-
-## Client-side validation
-
-The frontend also validates API responses in `frontend/src/api.ts` before trusting them. This is a hard boundary check to prevent broken or malformed JSON from being treated as a valid place search result.
+frontend/ uses POST /api/chat, not /api/location/search. It sends message (1–1000 characters), optional user_location, last_context and pending_category; replies use snake_case names and ready, needs_location, unsupported_category, location_not_found, no_results or error. Its health uses ai_mode=rule_based. See backend/services/validation.py and frontend/src/api.ts. Do not interchange the two contracts.
