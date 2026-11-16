@@ -146,7 +146,19 @@ export function Globe({
             .addTo(instance),
         );
       }
-      if (!location) return;
+      if (!location) {
+        instance.jumpTo({
+          center: [60, 18],
+          zoom:
+            container.current && container.current.clientHeight < 400
+              ? 0.4
+              : 1.5,
+          bearing: 0,
+          pitch: 0,
+        });
+        rotating.current = true;
+        return;
+      }
       const reduced =
         medical || matchMedia("(prefers-reduced-motion: reduce)").matches;
       if (places.length) {

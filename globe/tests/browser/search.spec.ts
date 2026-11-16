@@ -63,6 +63,10 @@ test("guest search, follow-up, cards, and honest hours", async ({ page }) => {
     question: "cafes instead",
     contextToken: "test-browser-context",
   });
+  await page.getByRole("button", { name: "Start fresh" }).click();
+  await expect(page.locator(".globe-pin")).toHaveCount(0);
+  await expect(page.locator(".world-caption")).toBeVisible();
+  await expect(page.getByLabel("Ask Geozity", { exact: true })).toHaveValue("");
   await expect(page.locator("body")).toHaveJSProperty(
     "scrollWidth",
     await page.locator("body").evaluate((el) => el.clientWidth),
