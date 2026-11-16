@@ -1,3 +1,5 @@
+> Source update — 16 November 2026: The globe work and this gallery were merged into GitHub main (90c3c42). The remote version-2-preview branch was removed after merge; its local checkpoint remains. There is no version-1 branch. The Version 1 hackathon milestone and V1/V2 screenshot-stage distinction below remain unchanged. See the [current documentation](docs/index.md).
+
 # Geozity product progression
 
 These screenshots are grouped by their supplied V1 and V2 filenames. They show interface states, not proof that every planned feature or release check is complete. No release dates are inferred from them.

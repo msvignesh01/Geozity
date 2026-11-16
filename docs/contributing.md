@@ -1,70 +1,13 @@
-# Contributing guide
+# Contributing and scope
 
-## Working agreement
+The current delivery target is a stable Version 1 hackathon app using the existing globe, live search, place details and optional voice. H2 outing planning and further H3–H6 development are paused until the owner explicitly resumes them. Screenshot V1/V2 labels are interface stages. The current source has been merged into main; the local version-2-preview name is a retained checkpoint, not an active remote release branch.
 
-This repository is deliberately small and documentation-driven. The code is treated as the source of truth for behavior, and documentation changes are expected whenever the application or deployment setup changes.
+Inspect the repository and relevant dependent areas before changes. Preserve both application generations and existing client work. Reuse the current contracts, provider adapters and budget checks. Do not add dependencies, unrelated architecture changes or new product scope to a documentation task.
 
-The project is not a large monorepo with many subsystems. The most important rule is simple: any document that describes product behavior must be checked against the current code before it is merged.
+Get informed approval before deleting features/files, changing stored data or database structure, altering sign-in/permissions, moving domains, changing hosting configuration, publishing to shared environments or rewriting saved history. Existing documentation can be updated within the requested docs scope; that is not approval to change the running app.
 
-## Before you change docs
+Run the relevant package's existing checks for behavior changes. For globe/, use pnpm test, pnpm typecheck, pnpm format:check and pnpm build. Tests must prove behavior; controlled browser fixtures do not prove live integration. Live AI/voice checks consume credits and require intentional opt-in. Physical-device and human acceptance are separate evidence.
 
-1. Read the relevant application code and confirm the actual behavior.
-2. Check whether the documentation is stale or missing.
-3. Update only the documentation files that are directly affected.
-4. Keep the wording focused on what the product does and how to operate it.
+Write honest docs with working relative links, real script names, accurate UI labels and clear current/earlier-app distinctions. Preserve dated evidence and label historical plans rather than presenting them as implemented. Never include credentials, raw user audio, private locations or management tokens in docs/screenshots/source. Keep .env.local, .dev.vars and .deployment/ ignored. Some original planning/evidence files remain local-only under existing ignore rules; do not silently change that publishing policy.
 
-## Scope of allowed changes
-
-This repository’s scope is documentation-only in the current engagement. Do not edit product code, configuration, or deployment logic without a clear and separate change request.
-
-Allowed changes:
-
-- README and product docs
-- architecture and runbook files
-- configuration references and examples
-- API documentation and setup guidance
-
-Not allowed without explicit approval:
-
-- deleting or replacing an existing teammate-authored guide without consent
-- moving or renaming files that other docs may reference
-- changing product behavior or runtime dependencies
-- modifying CI, deployment manifests, or provider configuration outside the docs scope
-
-## Documentation standards
-
-- Write in clear, neutral project language.
-- Do not invent features or workflows.
-- Do not claim commands work unless they are present in the project scripts or config.
-- Do not include real secrets or customer data.
-- Keep product text aligned with the actual UI labels and API responses in the code.
-
-## Documentation format
-
-The project documentation lives in the `docs/` directory and the root `README.md`. Keep headers consistent and ensure that:
-
-- every document is linked from the documentation index
-- every cross-reference points to an existing file
-- every page describes a real part of the project
-- no document contains placeholder content such as `TBD`, `coming soon`, or empty sections
-
-## Required reviews before publishing
-
-When updating documentation:
-
-- confirm the code still matches the documented behavior
-- check the file path and links
-- verify the commands in the setup guidance correspond to the repo scripts and manifests
-- review the write-up for accuracy rather than style alone
-
-## Branch and publishing language
-
-The repository includes a shared line of work and deployment config, but the docs in this session are not a replacement for a team release process. The operating assumption is that all docs are published to the current branch or shared working line after review by the project owner.
-
-## Local validation guidance
-
-The project already includes automated checks for Python and frontend behavior. The documentation changes themselves do not require a product-code change, but they should be reviewed against the actual repo contents and any code or setup changes that happened since the last update.
-
-## Practical maintenance rule
-
-If the application behavior changes, update the docs in the same change set. Documentation drift is treated as a product defect in the same way as stale instructions or a missing setup guide.
+Keep each change narrow and reversible. Do not delete older documentation or tests without approval. Report what was actually checked, its date and material gaps. Do not call the full roadmap complete on the strength of a passing build.

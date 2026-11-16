@@ -1,126 +1,49 @@
 # Developer setup
 
-## Required tools
+## Current globe app
 
-- Python 3.11+
-- Node.js 20+
-- pnpm 12+
-- PowerShell 7+ or Windows PowerShell 5.1+
+Run commands from the repository root unless shown otherwise. Use Node.js 24 (the package requires >=24 and <25) and pnpm with the committed lockfile.
 
-## Recommended local layout
-
-The repository root is the project root. The expected local structure is:
-
-```text
-Geozity/
-├── backend/
-│   ├── .venv/
-│   ├── requirements.txt
-│   ├── requirements.lock.txt
-│   ├── app.py
-│   └── services/
-├── frontend/
-│   ├── node_modules/
-│   ├── package.json
-│   └── src/
-├── scripts/
-│   └── start-local.ps1
-├── Dockerfile
-├── render.yaml
-├── .env.example
-└── README.md
-```
-
-## Install the backend
-
-From the repository root:
+Copy only missing settings from the root .env.example into the existing root .env.local; preserve existing credentials. The current app needs GEOAPIFY_API_KEY, SUPABASE_URL and either SUPABASE_SECRET_KEY or SUPABASE_SERVICE_ROLE_KEY. The Supabase usage table/function must already be installed in the intended project. Adding keys alone does not create them. Database changes require owner approval; do not rerun the SQL blindly on an initialized database.
 
 ```powershell
-cd backend
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-pip install -r requirements.lock.txt
-```
-
-If the lock file is not present or a dependency change has occurred, install from `requirements.txt` first and then regenerate the lock file in the project’s normal workflow. This repository currently includes `requirements.lock.txt` and `requirements.txt` together.
-
-## Install the frontend
-
-```powershell
-cd frontend
+Set-Location globe
 pnpm install --frozen-lockfile
+pnpm dev
 ```
 
-The `frontend/package.json` script set includes:
+Open http://127.0.0.1:8780/. The dev command runs setup:local and serves the website and local Worker together. setup:local reads nonempty settings from globe/.dev.vars, globe/.env.local and root .env.local in that precedence order (later files win), writes only allowed settings to ignored globe/.dev.vars and generates a session signing secret when absent. It does not upload secrets or initialize Supabase. Local requests use the configured Supabase project and real provider quotas; this is not automatically an isolated test database.
 
-- `pnpm dev` to start Vite in watch mode
-- `pnpm build` to build the frontend bundle
-- `pnpm typecheck` to perform TypeScript checking
-- `pnpm test` to run the frontend API validation test
+AI and voice default off in the sample. Enable only when intentionally testing a configured account, with nonzero allowances. The separate check-ai and check-voice scripts call providers directly and may consume credits outside the application's usage counters.
 
-## Local startup
+## Repeatable checks
 
-The canonical local startup script is:
+Inside globe/:
 
 ```powershell
-cd C:\Users\HP\Documents\GitHub\Geozity
-pwsh ./scripts/start-local.ps1
+pnpm test
+pnpm typecheck
+pnpm format:check
+pnpm build
 ```
 
-The script:
+pnpm test:browser runs desktop/mobile browser cases with intercepted API responses, using Chrome and synthetic microphone input. It may start the dev server and regenerate local settings. It is not proof of physical-device or live-provider behavior. No standalone ESLint command is configured.
 
-1. checks that the backend virtual environment exists
-2. checks that frontend dependencies are installed
-3. runs the TypeScript check
-4. builds the frontend with Vite
-5. starts the Flask server at the configured port
+Explicit real-provider checks are pnpm test:live, pnpm test:ai:live and pnpm test:voice:live. These consume provider capacity. The map live suite uses real Geoapify with a temporary local PostgreSQL-compatible database bridge; it does not verify hosted Supabase. See [verification](verification.md).
 
-The default port is `5000` unless `.env` or the environment sets `PORT`.
+## Earlier React/Flask app
 
-## Environment setup
-
-Copy `.env.example` to a project-root `.env` if you need an explicit local configuration file. The sample file contains values for the local server port and upstream OpenStreetMap hosts.
-
-The database is not used; the app keeps all request and provider caching in memory.
-
-## Verification
-
-The repo includes Python tests under `backend/tests/`. These are the source of truth for behavior, and they cover:
-
-- request validation
-- route behavior
-- category handling
-- fallback logic between providers
-- cache isolation and request correctness
-
-The frontend includes a small API validation test in `frontend/tests/api.test.mjs`.
-
-## Common setup issues
-
-### Missing Python environment
-
-The startup script throws:
-
-> The project Python environment is missing. Create backend/.venv and install backend/requirements.lock.txt first.
-
-### Missing frontend dependencies
-
-The startup script throws:
-
-> The website dependencies are missing. Run pnpm install --frozen-lockfile in frontend first.
-
-### Port already in use
-
-Set `PORT` in the environment or `.env` before starting the app. The script reads `PORT` from the environment and passes it through to the Flask app.
-
-## Running the backend directly
-
-You can also run the Flask app directly:
+Use Python 3.11 and Node 24. From the repository root:
 
 ```powershell
-cd backend
-.\.venv\Scripts\Activate.ps1
-python app.py
+python -m venv backend/.venv
+.\backend\.venv\Scripts\python.exe -m pip install -r backend/requirements.lock.txt
+Push-Location frontend
+pnpm install --frozen-lockfile
+Pop-Location
+.\scripts\start-local.ps1
 ```
 
-This starts the same API service, but it skips the frontend build check and is not the project’s preferred startup path.
+Open http://127.0.0.1:5000/. That script checks/builds frontend/ and starts Flask; it does not start the globe. Earlier-app checks are Python pytest under backend/, and pnpm test, pnpm typecheck and pnpm build inside frontend/. backend/tests/browser_server.py --fixtures is only a synthetic test entrypoint and must never host the real product.
+
+Never paste credentials into chat, commit .env files or use another person's hosting credentials. Hosted changes require the correct Vignesh account and approved scope.

@@ -1,33 +1,18 @@
-# Documentation index
+# Geozity documentation
 
-This folder contains the project documentation for Geozity. The documents are written for the people who use the product and the engineers who run it, and they match the code as it exists in this repository.
+Updated 16 November 2026 against the current repository and Vercel settings.
 
-## Audience map
+The delivery target is Version 1 for the hackathon: globe, live place search, place details and existing optional voice. Further outing, voice/personality and social work is paused until the owner resumes it. Screenshot V1/V2 labels describe interface stages, not two completed releases.
 
-- User guide: end users and staff members using the product in a browser
-- Developer setup: engineers setting up the app locally
-- Architecture: system design and provider relationships
-- Project structure: how files are organized
-- Configuration reference: environment variables and deployment settings
-- API reference: request and response contract for the Flask service
-- Operations runbook: what to do when upstream providers fail or the app is unavailable
-- Contributing guide: how to keep the docs and repo consistent
+- [User guide](user-guide.md): search, location, voice and limitations.
+- [Developer setup](developer-setup.md): current globe app and earlier app startup.
+- [Architecture](architecture.md): Vercel, Cloudflare, Supabase and providers.
+- [Project structure](project-structure.md): current and earlier application folders.
+- [Configuration](configuration.md): server settings, credentials and recorded models.
+- [API reference](api-reference.md): current endpoint contracts and earlier API distinction.
+- [Operations runbook](operations-runbook.md): the two Vercel projects and recovery steps.
+- [Contributing](contributing.md): scope, consent and validation.
+- [Screenshot progression](../PRODUCT_PROGRESSION.md).
+- [Verification record](verification.md): dated evidence and pending human/device checks. Historical PROJECT_MAP.md and BROWSER_CHECKS.md remain local-only under existing ignore rules.
 
-## Document list
-
-- [User guide](user-guide.md)
-- [Architecture](architecture.md)
-- [Developer setup](developer-setup.md)
-- [Project structure](project-structure.md)
-- [Configuration reference](configuration.md)
-- [API reference](api-reference.md)
-- [Operations runbook](operations-runbook.md)
-- [Contributing guide](contributing.md)
-
-## Project-level quick links
-
-- [README](../README.md)
-- [backend/app.py](../backend/app.py)
-- [frontend/src/App.tsx](../frontend/src/App.tsx)
-- [render.yaml](../render.yaml)
-- [Dockerfile](../Dockerfile)
+The latest source was merged into GitHub main in commit 90c3c429dee6696d0775bc4a4cc9f3d44be63616. The remote version-2-preview branch was subsequently removed; the local branch still retains that checkpoint. There is no version-1 branch. Both old and new applications remain in the repository. See [README](../README.md).

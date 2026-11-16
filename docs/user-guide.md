@@ -1,112 +1,30 @@
-# User guide
+# Using Geozity
 
-## What Geozity does
+Open [the current globe app](https://geozity-globe.vercel.app). The Version 1 hackathon scope is finding places and reading their details, with optional voice. There is no sign-in requirement.
 
-Geozity helps a person find nearby places and landmarks using natural-language questions. The app is designed for quick local discovery, not for shopping carts, user profiles, or robust account management.
+1. Choose Parks in Bengaluru, or type Cafes in Yeshwanthpur, Bengaluru and choose Find places.
+2. If asked which location you mean, select the matching location. Broad states/countries need a city or neighborhood.
+3. Read the numbered cards and matching pins. Select either to focus a place. Details can include address, opening hours and linked article information; missing details are stated honestly.
+4. Ask Cafes instead to reuse the current area. A named new location changes the area.
+5. Change Within to 1, 3, 5 or 10 km for the next search. Distances are straight-line, not walking/driving time.
+6. Choose Start fresh to cancel the current search and clear results, area, search context and shared device coordinates from app state. It stops spoken playback; it does not revoke browser permissions or erase provider records.
 
-Supported categories include:
+Supported categories: hospitals, parks, cafes, restaurants, pharmacies, museums, attractions, libraries and supermarkets. At most ten returned places are shown; this is not a complete inventory or a guarantee of the nearest business.
 
-- hospitals
-- parks
-- cafes
-- restaurants
-- pharmacies
-- museums
-- attractions
-- libraries
-- supermarkets
+## Optional location
 
-Examples:
+Choose Use my location and allow the browser prompt if desired, then ask for places near me. If permission is denied, type an area instead. Location is optional and the selected search area reaches map providers.
 
-- "nearest hospital to MG Road, Bengaluru"
-- "parks near me"
-- "museums in London"
-- "cafes instead"
+## Optional voice
 
-## How to use the app
+When enabled, choose Indian / mixed languages · Sarvam or English / international · ElevenLabs. Read the provider privacy link and tick consent, then choose Record question. Stop when finished; recording stops automatically before 30 seconds. Review the editable transcript and choose Find places yourself. Sarvam converts Indian/mixed speech to English text. Accuracy depends on language, accent, audio and provider availability.
 
-1. Open the app in the browser.
-2. Type a query, or choose one of the suggested starter prompts.
-3. If the request needs a location, either:
-   - click "Use my GPS," or
-   - type a city, neighborhood, or place name.
-4. Review the returned list of near-by places.
-5. Click a place on the map or in the list to focus the result.
+Read answer aloud · AI voice speaks the English answer through the selected service. Geozity does not save recordings; the provider has its own data policy. Voice is optional and has limited daily allowance; typing remains available when voice alone is unavailable. This is not a hands-free continuous voice assistant.
 
-## Important behavior to know
+## Honest limits
 
-### Searching near your current location
+An empty result is different from an outage. Check the area/category if no matches appear. Follow an error's retry guidance; an exhausted daily allowance needs time to reset, not repeated clicks. If the map cannot load, use the available result list and retry the map control. The earlier website may display a service-waking message because its Render server can sleep; the current globe uses a different server.
 
-If you choose "Use my GPS," the browser asks for the device location. That coordinate is used for the search radius, which is typically 5 km for the result set.
+Place hours and map records may be incomplete or outdated. Hospitals/pharmacies carry a medical caution; contact local emergency services for an emergency. The app does not verify availability, accept bookings or plan routes/outings. There are no saved favorites, accounts, friend rooms or public plans. Physical-phone and human voice acceptance remains pending. Future roadmap features are paused until the owner resumes them.
 
-If GPS is denied, unavailable, or the browser does not support it, the app asks you to type a location instead.
-
-### Follow-up questions
-
-The UI keeps the last location and category in memory. That allows follow-ups such as:
-
-- "cafes instead"
-- "what about parks"
-- "switch to pharmacies"
-
-The app uses the last known search area unless the new query gives a different city or neighborhood.
-
-### Supported place categories
-
-The backend validates supported categories before searching. If the user asks for something outside that list, the API responds with an explicit "unsupported category" message and suggests valid categories.
-
-### Safety notice
-
-For hospital and pharmacy searches, the app appends a safety notice reminding the user to contact local emergency services in a medical emergency.
-
-## Roles and permissions
-
-This product currently has no user accounts or role-based permissions. There are no administrator, staff, or customer roles in the codebase.
-
-In practical terms:
-
-- every browser user can open the same search interface
-- every request is treated as an anonymous public search
-- no data is stored by account or role
-- no private administration area exists in the current implementation
-
-## What the app does not do
-
-The current product does not include:
-
-- saved user favorites
-- bookings or reservations
-- user reviews
-- login or authentication
-- a backend database for persistent records
-- a private editing or admin dashboard
-
-## Troubleshooting
-
-### The search service is starting
-
-When the hosted service is waking up, the app displays: “Waking up Geozity’s search service. This can take about a minute. Your search will start automatically.” Wait for the search to continue.
-
-If startup does not finish, the app displays: “Geozity couldn’t finish starting the search service. Please send your search again to reconnect.” Send the search again to retry.
-
-### The page says the search service is busy
-
-This is a temporary concurrency limit in the Flask app. It can happen when multiple searches are queued at the same time. Try again after a moment.
-
-### No results are returned
-
-This is a valid result in the application logic. The app distinguishes between "no nearby matches" and "provider outage." If the search area is too small or the place type is uncommon, it can legitimately return no results.
-
-### The map tiles do not load
-
-The map UI shows a warning if some tiles fail to load, but the search results and place details remain available.
-
-### Location is not found
-
-This means the place or city name could not be resolved by the geocoding providers. Check the spelling or add a more specific location such as a city or neighborhood.
-
-## Data sources and attribution
-
-The app displays attribution to OpenStreetMap contributors, Nominatim, Overpass API, Photon, and Wikipedia/Wikidata when returning results or responses.
-
-The project is built around public community-maintained map data and article summaries; it is not a closed or proprietary platform.
+The [earlier website](https://geozity.vercel.app) remains separate. Its Use my GPS and conversational-memory controls belong to the earlier interface, not this guide's current globe controls.
