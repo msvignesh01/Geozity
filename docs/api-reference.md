@@ -54,6 +54,8 @@ Body is audio/wav: mono 16 kHz, 16-bit PCM with the validated 44-byte WAV header
 
 ## POST /api/voice/speak
 
+The optional `voice` field accepts only `jessica` or `sarah`, and only with provider `elevenlabs`. These names map to approved built-in IDs on the server; arbitrary IDs are rejected before usage reservation or external calls. Omit the field for Sarvam. Existing clients without the field retain the account voice override, if configured, otherwise Jessica is the default.
+
 Strict JSON object with text (1–500 trimmed characters) and optional provider (sarvam or elevenlabs, default elevenlabs). Returns audio/wav or audio/mpeg based on returned bytes. Voice must be enabled and the relevant allowance available. The route's shared body limit is 960044 bytes; that does not relax the text limit.
 
 ## Failure semantics

@@ -11,7 +11,13 @@ import {
 import { Globe } from "./components/Globe";
 import { Voice, apiError } from "./components/Voice";
 import { OutingPlanner } from "./components/OutingPlanner";
-import { voiceProviderSchema, type VoiceProvider } from "./domain/voice";
+import {
+  elevenVoiceSchema,
+  elevenVoices,
+  type ElevenVoice,
+  voiceProviderSchema,
+  type VoiceProvider,
+} from "./domain/voice";
 
 const configSchema = z.object({
   voiceEnabled: z.boolean(),
@@ -47,6 +53,26 @@ export function App() {
   });
   const [voiceProvider, setVoiceProvider] =
     useState<VoiceProvider>("elevenlabs");
+  const [replyVoice, setReplyVoice] = useState<ElevenVoice>(() => {
+    try {
+      const saved = elevenVoiceSchema.safeParse(
+        localStorage.getItem("geozity:reply-voice"),
+      );
+      return saved.success ? saved.data : "jessica";
+    } catch {
+      console.warn("Voice preference storage is unavailable; using Jessica.");
+      return "jessica";
+    }
+  });
+  useEffect(() => {
+    try {
+      localStorage.setItem("geozity:reply-voice", replyVoice);
+    } catch {
+      console.warn(
+        "Voice preference could not be saved; it applies to this visit.",
+      );
+    }
+  }, [replyVoice]);
   const selectedProvider = config.voiceProviders.includes(voiceProvider)
     ? voiceProvider
     : (config.voiceProviders[0] ?? "elevenlabs");
@@ -221,6 +247,7 @@ export function App() {
         body: JSON.stringify({
           text: text.slice(0, 500),
           provider: selectedProvider,
+          ...(selectedProvider === "elevenlabs" ? { voice: replyVoice } : {}),
         }),
         signal: AbortSignal.any([
           controller.signal,
@@ -635,6 +662,30 @@ export function App() {
                           {provider === "sarvam"
                             ? "Indian / mixed languages · Sarvam"
                             : "English / international · ElevenLabs"}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                )}
+                {config.speechEnabled && selectedProvider === "elevenlabs" && (
+                  <label className="voice-choice">
+                    Reply voice{" "}
+                    <select
+                      aria-label="Reply voice"
+                      value={replyVoice}
+                      onChange={(e) => {
+                        const choice = elevenVoiceSchema.safeParse(
+                          e.target.value,
+                        );
+                        if (choice.success) {
+                          stopSpeech();
+                          setReplyVoice(choice.data);
+                        }
+                      }}
+                    >
+                      {elevenVoiceSchema.options.map((voice) => (
+                        <option key={voice} value={voice}>
+                          {elevenVoices[voice].label}
                         </option>
                       ))}
                     </select>

@@ -17,6 +17,8 @@ Choose Use my location and allow the browser prompt if desired, then ask for pla
 
 ## Optional voice
 
+With ElevenLabs selected, **Reply voice** offers Jessica (playful and warm, the default) and Sarah (calm and reassuring). Both use American English accents. Your selection is remembered in this browser; it is never randomly assigned. Changing it stops the current spoken reply. If browser storage is unavailable, it applies to the current visit. Sarvam uses its separate model voice and does not use this selector.
+
 When enabled, choose Indian / mixed languages · Sarvam or English / international · ElevenLabs. Read the provider privacy link and tick consent, then choose Record question. Stop when finished; recording stops automatically before 30 seconds. Review the editable transcript and choose Find places yourself. Sarvam converts Indian/mixed speech to English text. Accuracy depends on language, accent, audio and provider availability.
 
 Read answer aloud · AI voice speaks the English answer through the selected service. Geozity does not save recordings; the provider has its own data policy. Voice is optional and has limited daily allowance; typing remains available when voice alone is unavailable. This is not a hands-free continuous voice assistant.

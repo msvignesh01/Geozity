@@ -421,6 +421,68 @@ describe("explicit voice-provider routing", () => {
     DAILY_VOICE_SECONDS_LIMIT: "100",
     DAILY_SPEECH_CHAR_LIMIT: "1000",
   };
+  it.each([
+    ["jessica", "cgSgspJ2msm6clMCkdW9"],
+    ["sarah", "EXAVITQu4vr4xnSDxMaL"],
+  ])(
+    "uses only the selected approved %s voice, even with an account default",
+    async (voice, id) => {
+      const response = await app.request(
+        "/api/voice/speak",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            text: "Hello Bengaluru.",
+            provider: "elevenlabs",
+            voice,
+          }),
+        },
+        { ...voiceEnv, ELEVENLABS_VOICE_ID: "account-default" },
+      );
+      expect(response.status).toBe(200);
+      expect(fetched.filter((url) => url.includes("/text-to-speech/"))).toEqual(
+        [
+          `https://api.elevenlabs.io/v1/text-to-speech/${id}?output_format=mp3_22050_32`,
+        ],
+      );
+    },
+  );
+  it("defaults new clients to Jessica when no account override exists", async () => {
+    const response = await app.request(
+      "/api/voice/speak",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: "Hello Bengaluru." }),
+      },
+      voiceEnv,
+    );
+    expect(response.status).toBe(200);
+    expect(fetched.some((url) => url.includes("/cgSgspJ2msm6clMCkdW9?"))).toBe(
+      true,
+    );
+  });
+  it.each([
+    { provider: "elevenlabs", voice: "EQajdcMa8fccc3KCqwGO" },
+    { provider: "elevenlabs", voice: "unknown" },
+    { provider: "sarvam", voice: "jessica" },
+  ])(
+    "rejects unsupported voice selection before billing or provider calls: %j",
+    async (selection) => {
+      const response = await app.request(
+        "/api/voice/speak",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text: "Hello Bengaluru.", ...selection }),
+        },
+        voiceEnv,
+      );
+      expect(response.status).toBe(400);
+      expect(fetched).toEqual([]);
+    },
+  );
   it("routes Indian speech only to Sarvam and returns an editable English transcript", async () => {
     const response = await app.request(
       "/api/voice/transcribe",
