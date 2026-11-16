@@ -1,0 +1,25 @@
+name = "geozity-api"
+account_id = "7d06a97f26fa367bdb514a171738024f"
+main = "worker.ts"
+compatibility_date = "2026-11-14"
+compatibility_flags = ["nodejs_compat"]
+minify = true
+
+[vars]
+FRONTEND_ORIGIN = "https://geozity-globe.vercel.app"
+DISABLE_EXTERNAL_PROVIDERS = "false"
+DAILY_MAP_CALL_LIMIT = "200"
+ENABLE_AI = "true"
+ENABLE_VOICE = "true"
+MAP_STYLE_URL = "https://tiles.openfreemap.org/styles/liberty"
+AI_MODEL = "sarvam-105b-conversations"
+DAILY_AI_CALL_LIMIT = "30"
+DAILY_VOICE_SECONDS_LIMIT = "120"
+DAILY_SPEECH_CHAR_LIMIT = "3000"
+
+[observability]
+enabled = true
+
+[dev]
+port = 8780
+inspector_port = 9237
