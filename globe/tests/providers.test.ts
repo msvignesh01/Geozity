@@ -33,6 +33,53 @@ function network(data: unknown, budget = true) {
   );
 }
 describe("provider boundary regressions", () => {
+  it("enriches tagged results beyond the first three without exceeding three article lookups", async () => {
+    const articles: string[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: string | URL, init?: RequestInit) => {
+        const url = String(input);
+        if (url.includes("/rpc/")) return json(true);
+        if (url.includes("wikipedia.org")) {
+          articles.push(url);
+          expect(new Headers(init?.headers).get("User-Agent")).toContain(
+            "https://geozity-globe.vercel.app",
+          );
+          return json({
+            type: "standard",
+            extract: "A sourced public park summary.",
+          });
+        }
+        return json({
+          features: Array.from({ length: 8 }, (_, i) => ({
+            properties: {
+              lat: 12.97 + i * 0.001,
+              lon: 77.59,
+              name: `Park ${i + 1}`,
+              categories: ["leisure.park"],
+              datasource: {
+                raw: {
+                  osm_type: "n",
+                  osm_id: i + 1,
+                  ...(i >= 3 ? { wikipedia: `en:Park_${i + 1}` } : {}),
+                },
+              },
+            },
+          })),
+        });
+      }),
+    );
+    const found = await places(
+      env,
+      "client",
+      "park",
+      { lat: 12.97, lon: 77.59, label: "Test area" },
+      5000,
+    );
+    expect(found[3].wikiSummary).toBe("A sourced public park summary.");
+    expect(found[0].wikiSummary).toBeNull();
+    expect(articles).toHaveLength(3);
+  });
   it("asks for a more specific area instead of searching the middle of a state", async () => {
     network({
       features: [

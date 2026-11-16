@@ -188,17 +188,20 @@ export async function places(
     )
     .slice(0, 10);
   await Promise.all(
-    ranked.slice(0, 3).map(async (place) => {
-      const article = await knowledge(
-        place.wikipedia,
-        place.wikidata,
-        env.requestDeadline,
-      );
-      if (article) {
-        place.wikiSummary = article.summary;
-        place.wikiUrl = article.url;
-      }
-    }),
+    ranked
+      .filter((place) => place.wikipedia || place.wikidata)
+      .slice(0, 3)
+      .map(async (place) => {
+        const article = await knowledge(
+          place.wikipedia,
+          place.wikidata,
+          env.requestDeadline,
+        );
+        if (article) {
+          place.wikiSummary = article.summary;
+          place.wikiUrl = article.url;
+        }
+      }),
   );
   return ranked.map(
     ({ wikipedia: _wikipedia, wikidata: _wikidata, ...place }, i) => ({
@@ -241,7 +244,12 @@ async function knowledge(
           await jsonBody(
             await upstream(
               `https://www.wikidata.org/w/api.php?action=wbgetentities&ids=${wikidata}&props=sitelinks&sitefilter=enwiki&format=json`,
-              {},
+              {
+                headers: {
+                  "User-Agent":
+                    "Geozity/1.0 (+https://geozity-globe.vercel.app)",
+                },
+              },
               2000,
               deadline,
             ),
@@ -255,7 +263,11 @@ async function knowledge(
       await jsonBody(
         await upstream(
           `https://${language}.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`,
-          {},
+          {
+            headers: {
+              "User-Agent": "Geozity/1.0 (+https://geozity-globe.vercel.app)",
+            },
+          },
           2000,
           deadline,
         ),
